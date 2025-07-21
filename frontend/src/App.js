@@ -11,6 +11,8 @@ import About from './pages/About/About';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import FreeTrialSetup from './pages/FreeTrial/FreeTrialSetup';
+import ResetPassword from "./pages/Auth/ResetPassword";
+import ForgotPassword from "./pages/Auth/ForgotPassword";
 
 function App() {
     return (
@@ -25,6 +27,8 @@ function App() {
                         <Route path="/about" element={<About />} />
                         <Route path="/login" element={<Login />} />
                         <Route path="/register" element={<Register />} />
+                        <Route path="/forgot-password" element={<ForgotPassword />} />
+                        <Route path="/reset-password/:token" element={<ResetPassword />} />
                         <Route path="/free-trial-setup" element={<FreeTrialSetup />} />
                     </Routes>
                 </div>
