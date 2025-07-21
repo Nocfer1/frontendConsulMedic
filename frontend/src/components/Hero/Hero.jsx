@@ -1,6 +1,7 @@
 import React from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import './Hero.css';
+import consulta_medica from '../../assets/consulta_medica.png';
 
 const Hero = () => {
     return (
@@ -18,7 +19,11 @@ const Hero = () => {
                             </div>
                             <div className="feature-card animate__animated animate__fadeInUp animate__delay-2s">
                                 <h3>Resúmenes instantáneos</h3>
-                                <p>Hace un resumen en segundos</p>
+                                <p>Obtén un resumen inteligente de cada consulta</p>
+                            </div>
+                            <div className="feature-card animate__animated animate__fadeInUp animate__delay-3s">
+                                <h3>Rapidez en consultas</h3>
+                                <p>Reduce el tiempo y mejora la eficiencia en tus consultas medicas</p>
                             </div>
                         </div>
                         <Button variant="primary" size="lg" className="mt-4 animate__animated animate__fadeInUp animate__delay-3s">
@@ -27,7 +32,7 @@ const Hero = () => {
                     </Col>
                     <Col md={6} className="d-none d-md-block">
                         <div className="hero-image animate__animated animate__fadeIn">
-                            <img src="/medical-office.png" alt="Consultorio médico" className="img-fluid" />
+                            <img src={consulta_medica} alt="Consultorio médico" className="img-fluid" />
                         </div>
                     </Col>
                 </Row>

@@ -4,6 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 import NavigationBar from './components/Navbar/Navbar';
 import Hero from './components/Hero/Hero';
+import Footer from "./components/Footer/Footer";
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         <div className="App">
           <NavigationBar />
           <Hero />
+            <Footer />
         </div>
       </Router>
   );
