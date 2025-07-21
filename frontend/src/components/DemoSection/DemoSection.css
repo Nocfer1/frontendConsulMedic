@@ -1,0 +1,46 @@
+.demo-section {
+    background-color: #f8f9fa;
+    padding: 100px 0;
+}
+
+.demo-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.demo-wrapper {
+    position: relative;
+    padding-top: 56.25%; /* Aspect ratio 16:9 */
+    width: 100%;
+}
+
+.demo-video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.demo-section h2 {
+    color: #0056b3;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 3rem;
+}
+
+@media (max-width: 768px) {
+    .demo-section {
+        padding: 60px 0;
+    }
+
+    .demo-section h2 {
+        font-size: 2rem;
+    }
+}

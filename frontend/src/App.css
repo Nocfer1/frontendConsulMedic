@@ -33,3 +33,19 @@ html {
     opacity: 1;
   }
 }
+/* Estilos para las secciones */
+section {
+  padding: 100px 0;
+}
+
+.section-title {
+  color: #0056b3;
+  margin-bottom: 2rem;
+}
+
+/* Ajustes responsivos */
+@media (max-width: 768px) {
+  section {
+    padding: 60px 0;
+  }
+}
