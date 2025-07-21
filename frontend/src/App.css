@@ -7,6 +7,9 @@
 /* El contenido principal debe crecer para empujar el footer hacia abajo */
 .main-content {
   flex: 1 0 auto;
+  position: relative;
+  z-index: 1;
+  background: #f8f9fa;
 }
 
 /* Estilos globales */

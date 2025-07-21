@@ -1,9 +1,21 @@
 .footer {
     background-color: #f8f9fa;
-    padding-top: 4rem;
+    padding: 4rem 0 2rem;
     color: #333;
-    flex-shrink: 0; /* Evita que el footer se encoja */
-    margin-top: auto; /* Empuja el footer al fondo cuando hay poco contenido */
+    margin-top: 3rem; /* Añadido margen superior */
+    border-top: 1px solid #dee2e6; /* Borde superior más visible */
+    position: relative; /* Para el pseudo-elemento */
+}
+
+/* Añadir una sombra sutil en la parte superior */
+.footer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.1);
 }
 
 .main-footer {
