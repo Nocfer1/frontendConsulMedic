@@ -31,10 +31,27 @@ const Register = () => {
             return;
         }
 
+        const body = {
+            nombre: formData.name,
+            correo: formData.email,
+            contrasenia :formData.password,
+            especialidad: formData.speciality
+        }
+
         try {
-            // Aquí irá la lógica de registro con tu backend
-            console.log('Register:', formData);
-            navigate('/dashboard');
+            const response = await fetch ('http://localhost:5000/api/auth/register',{
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            })
+            if (response.ok) {
+                navigate('/dashboard');
+            }else{
+                const text = await response.text();
+                setError(text || 'Error al registrar. Por favor, intenta nuevamente.');
+            }
         } catch (err) {
             setError('Error al registrar. Por favor, intenta nuevamente.');
         }
