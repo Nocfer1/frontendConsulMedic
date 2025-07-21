@@ -2,6 +2,8 @@
     background-color: #1f1f1f;
     padding: 1rem 0;
     color: #fff;
+    flex-shrink: 0; /* Evita que el footer se encoja */
+    margin-top: auto; /* Empuja el footer al fondo cuando hay poco contenido */
 }
 
 .footer-content {

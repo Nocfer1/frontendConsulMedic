@@ -1,5 +1,12 @@
 .App {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Esto asegura que la app tome al menos toda la altura de la ventana */
+}
+
+/* El contenido principal debe crecer para empujar el footer hacia abajo */
+.main-content {
+  flex: 1 0 auto;
 }
 
 /* Estilos globales */

@@ -1,9 +1,17 @@
 import React from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom'; // Importamos useNavigate
 import './Hero.css';
 import consulta_medica from '../../assets/consulta_medica.png';
 
 const Hero = () => {
+    const navigate = useNavigate(); // Inicializamos el hook
+
+    // Función para manejar el click del botón
+    const handleStartNow = () => {
+        navigate('/register'); // Redirige al registro
+    };
+
     return (
         <div className="hero-section">
             <Container>
@@ -26,7 +34,12 @@ const Hero = () => {
                                 <p>Reduce el tiempo y mejora la eficiencia en tus consultas medicas</p>
                             </div>
                         </div>
-                        <Button variant="primary" size="lg" className="mt-4 animate__animated animate__fadeInUp animate__delay-3s">
+                        <Button
+                            variant="primary"
+                            size="lg"
+                            className="mt-4 animate__animated animate__fadeInUp animate__delay-3s"
+                            onClick={handleStartNow} // Agregamos el manejador de eventos
+                        >
                             Comenzar ahora
                         </Button>
                     </Col>

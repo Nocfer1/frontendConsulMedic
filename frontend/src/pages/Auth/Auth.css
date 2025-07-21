@@ -1,0 +1,26 @@
+.auth-page {
+    padding: 100px 0;
+    background: #f8f9fa;
+    min-height: 100vh;
+}
+
+.auth-content {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.auth-card {
+    border: none;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.auth-card .card-footer {
+    background: none;
+    border-top: 1px solid #eee;
+    padding: 20px;
+}
+
+.form-control:focus {
+    border-color: #0056b3;
+    box-shadow: 0 0 0 0.2rem rgba(0, 86, 179, 0.25);
+}
