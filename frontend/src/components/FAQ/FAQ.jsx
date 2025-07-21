@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { Container, Accordion } from 'react-bootstrap';
 import './FAQ.css';
 
