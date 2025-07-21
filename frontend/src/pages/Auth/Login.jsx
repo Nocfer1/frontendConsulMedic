@@ -18,14 +18,30 @@ const Login = () => {
         setError('');
 
         try {
-            // Aquí irá la lógica de autenticación con tu backend
-            console.log('Login:', { email, password });
+            const response = await fetch('http://localhost:5000/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    correo: email,
+                    contrasenia: password
+                })
+            });
 
-            // Si el login es exitoso y viene de prueba gratuita
-            if (isFromFreeTrial) {
-                navigate('/free-trial-setup');
+            if (response.ok) {
+                // Obtén el token del backend
+                const data = await response.json();
+                // Guarda el token JWT en localStorage (o donde prefieras)
+                localStorage.setItem('token', data.token);
+
+                // Redirige según corresponda
+                if (isFromFreeTrial) {
+                    navigate('/free-trial-setup');
+                } else {
+                    navigate('/pricing');
+                }
             } else {
-                navigate('/dashboard');
+                const text = await response.text();
+                setError(text || 'Error al iniciar sesión. Por favor, verifica tus credenciales.');
             }
         } catch (err) {
             setError('Error al iniciar sesión. Por favor, verifica tus credenciales.');
