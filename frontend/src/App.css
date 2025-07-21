@@ -1,5 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
 .App {
   text-align: center;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #1a1a1a;
+  color: #ffffff;
 }
 
 .App-logo {
@@ -35,4 +43,105 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.custom-navbar {
+  background-color: #1a1a1a !important;
+  padding: 1rem 0;
+}
+
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.8rem;
+  color: #fff !important;
+}
+
+.nav-link {
+  color: #a0a0a0 !important;
+  font-weight: 500;
+  margin: 0 0.5rem;
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover, .nav-link.active {
+  color: #fff !important;
+}
+
+.btn-success-custom {
+  background-color: #00c853;
+  border-color: #00c853;
+  border-radius: 25px;
+  padding: 10px 25px;
+  font-weight: 600;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  text-decoration: none;
+  color: white;
+}
+
+.btn-success-custom:hover {
+  background-color: #00e676;
+  border-color: #00e676;
+  color: white;
+}
+
+.hero-section {
+  padding: 8rem 0;
+  text-align: center;
+}
+
+.hero-section h1 {
+  font-size: 4rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.feature-icon {
+  font-size: 1.5rem;
+  margin-right: 10px;
+  color: #00c853;
+}
+
+.feature-list li {
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+}
+
+.main-content {
+  min-height: calc(100vh - 160px);
+}
+
+.footer {
+  padding: 2rem 0;
+  background-color: #111;
+  text-align: center;
+  color: #a0a0a0;
+}
+
+/* Estilos para la página de consulta */
+.recording-section {
+  background-color: #222;
+  border-radius: 15px;
+  padding: 2rem;
+  margin-top: 2rem;
+}
+
+.recording-button {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin: 0 auto;
+}
+
+.transcription-box {
+  background-color: #2a2a2a;
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  min-height: 200px;
 }
