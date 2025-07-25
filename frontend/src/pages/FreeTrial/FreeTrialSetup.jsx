@@ -9,10 +9,30 @@ const FreeTrialSetup = () => {
 
     const handleStartTrial = async () => {
         try {
-            // Aquí irá la lógica para iniciar la prueba gratuita
-            console.log('Starting free trial');
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                navigate('/login', { state: { fromFreeTrial: true } });
+                return;
+            }
+
+            // Iniciar prueba gratuita en el backend
+            const response = await fetch('http://localhost:5000/api/user/start-trial', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al iniciar la prueba gratuita');
+            }
+
+            // Redirigir al dashboard
             navigate('/dashboard');
         } catch (err) {
+            console.error('Error:', err);
             setError('Error al iniciar la prueba gratuita. Por favor, intenta nuevamente.');
         }
     };

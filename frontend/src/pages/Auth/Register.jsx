@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Container, Form, Button, Card, Alert } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Container, Form, Button, Card, Alert, Spinner } from 'react-bootstrap';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import './Auth.css';
 
 const Register = () => {
@@ -13,7 +14,17 @@ const Register = () => {
         licenseNumber: ''
     });
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+    const location = useLocation();
     const navigate = useNavigate();
+    const { register } = useAuth();
+
+    useEffect(() => {
+        // Verificar si hay un mensaje desde la ubicación
+        if (location.state && location.state.message) {
+            setSuccessMessage(location.state.message);
+        }
+    }, [location]);
 
     const handleChange = (e) => {
         setFormData({
@@ -31,26 +42,27 @@ const Register = () => {
             return;
         }
 
-        const body = {
+        const userData = {
             nombre: formData.name,
             correo: formData.email,
-            contrasenia :formData.password,
+            contrasenia: formData.password,
             especialidad: formData.speciality
         }
 
         try {
-            const response = await fetch ('http://localhost:5000/api/auth/register',{
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(body)
-            })
-            if (response.ok) {
-                navigate('/dashboard');
-            }else{
-                const text = await response.text();
-                setError(text || 'Error al registrar. Por favor, intenta nuevamente.');
+            const result = await register(userData);
+
+            if (result.success) {
+                if (result.requireLogin) {
+                    // Si el registro fue exitoso pero necesitamos iniciar sesión manualmente
+                    setError('');
+                    navigate('/login', { state: { message: 'Registro exitoso. Por favor inicia sesión.' } });
+                } else {
+                    // Si el registro incluía token, vamos directamente al dashboard
+                    navigate('/dashboard');
+                }
+            } else {
+                setError(result.error || 'Error al registrar. Por favor, intenta nuevamente.');
             }
         } catch (err) {
             setError('Error al registrar. Por favor, intenta nuevamente.');
@@ -65,6 +77,7 @@ const Register = () => {
                         <Card.Body>
                             <h2 className="text-center mb-4">Registro</h2>
                             {error && <Alert variant="danger">{error}</Alert>}
+                            {successMessage && <Alert variant="success">{successMessage}</Alert>}
                             <Form onSubmit={handleSubmit}>
                                 <Form.Group className="mb-3">
                                     <Form.Label>Nombre completo</Form.Label>

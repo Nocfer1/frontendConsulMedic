@@ -2,12 +2,12 @@
     background-color: #f8f9fa;
     padding: 4rem 0 2rem;
     color: #333;
-    margin-top: 3rem; /* Añadido margen superior */
+    margin-top: 3rem;
     border-top: 1px solid #dee2e6; /* Borde superior más visible */
     position: relative; /* Para el pseudo-elemento */
 }
 
-/* Añadir una sombra sutil en la parte superior */
+
 .footer::before {
     content: '';
     position: absolute;

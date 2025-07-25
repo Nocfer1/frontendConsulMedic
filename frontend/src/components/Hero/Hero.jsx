@@ -1,9 +1,8 @@
 import React from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom'; // Importamos useNavigate
+import { useNavigate } from 'react-router-dom';
 import './Hero.css';
 import consulta_medica from '../../assets/consulta_medica.png';
-
 const Hero = () => {
     const navigate = useNavigate(); // Inicializamos el hook
 

@@ -1,0 +1,38 @@
+.consultations-page {
+    padding: 2rem 0;
+    min-height: 80vh;
+}
+
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+}
+
+.sortable-header:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.consultations-table th {
+    vertical-align: middle;
+}
+
+.consultations-table td {
+    vertical-align: middle;
+}
+
+.pagination-container {
+    display: flex;
+    justify-content: center;
+}
+
+.transcription-content,
+.summary-content {
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-line;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}

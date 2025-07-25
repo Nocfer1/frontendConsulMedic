@@ -1,49 +1,42 @@
 import React, { useState } from 'react';
 import { Container, Form, Button, Card, Alert } from 'react-bootstrap';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import './Auth.css';
 
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
+    const [error, setError] = useState('')
     const navigate = useNavigate();
     const location = useLocation();
+    const { login } = useAuth();
 
     // Verifica si viene de la página de prueba gratuita
     const isFromFreeTrial = location.state?.fromFreeTrial;
+    const redirectPath = location.state?.from?.pathname || (isFromFreeTrial ? '/free-trial-setup' : '/dashboard');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
 
+        console.log('Intentando iniciar sesión con:', email);
+
         try {
-            const response = await fetch('http://localhost:5000/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    correo: email,
-                    contrasenia: password
-                })
-            });
+            const result = await login(email, password);
+            console.log('Resultado del login:', result);
 
-            if (response.ok) {
-                // Obtén el token del backend
-                const data = await response.json();
-                // Guarda el token JWT en localStorage (o donde prefieras)
-                localStorage.setItem('token', data.token);
-
-                // Redirige según corresponda
-                if (isFromFreeTrial) {
-                    navigate('/free-trial-setup');
-                } else {
-                    navigate('/pricing');
-                }
+            if (result.success) {
+                console.log('Login exitoso, redirigiendo a:', redirectPath);
+                // Establecemos un timeout para asegurarnos que el estado se actualice
+                setTimeout(() => {
+                    navigate(redirectPath, { replace: true });
+                }, 100);
             } else {
-                const text = await response.text();
-                setError(text || 'Error al iniciar sesión. Por favor, verifica tus credenciales.');
+                setError(result.error || 'Error al iniciar sesión. Por favor, verifica tus credenciales.');
             }
         } catch (err) {
+            console.error('Error en login:', err);
             setError('Error al iniciar sesión. Por favor, verifica tus credenciales.');
         }
     };
