@@ -1,8 +1,17 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+describe('Página principal de ConsulMedic', () => {
+  test('muestra el título principal', () => {
+    render(<App />);
+    const titulo = screen.getByText(/Aplicación para transcribir consultas médicas/i);
+    expect(titulo).toBeInTheDocument();
+  });
+
+  test('muestra el botón Comenzar ahora', () => {
+    render(<App />);
+    const boton = screen.getByRole('button', { name: /comenzar ahora/i });
+    expect(boton).toBeInTheDocument();
+  });
+
 });
