@@ -1,103 +1,521 @@
+/* Estilos generales del Dashboard */
 .dashboard-page {
     padding: 2rem 0;
     min-height: 80vh;
+    background-color: #f5f8fa;
+}
+
+/* Header del Dashboard */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dashboard-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #0d6efd;
+    background: linear-gradient(90deg, #0d6efd, #5c9aff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Tarjetas de estadísticas */
+.stats-row {
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    height: 100%;
+    overflow: hidden;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card .card-body {
+    padding: 1.5rem;
+    position: relative;
+}
+
+.stat-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    background-color: rgba(13, 110, 253, 0.1);
+    margin-bottom: 1.2rem;
+}
+
+.stat-icon svg {
+    width: 24px;
+    height: 24px;
+    color: #0d6efd;
+}
+
+.stat-icon.green {
+    background-color: rgba(25, 135, 84, 0.1);
+}
+
+.stat-icon.green svg {
+    color: #198754;
+}
+
+.stat-icon.blue {
+    background-color: rgba(13, 202, 240, 0.1);
+}
+
+.stat-icon.blue svg {
+    color: #0dcaf0;
+}
+
+.stat-icon.purple {
+    background-color: rgba(111, 66, 193, 0.1);
+}
+
+.stat-icon.purple svg {
+    color: #6f42c1;
+}
+
+.stat-card h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.stat-card p {
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.stat-footer {
+    margin-top: auto;
+}
+
+/* Tarjetas de características */
+.feature-card {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.12);
+}
+
+
+.feature-card .card-header {
+    background-color: #fff;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 1.25rem 1.5rem;
+}
+
+.feature-card .card-header h3 {
+    margin-bottom: 0;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #222;
+}
+
+.feature-card .card-body {
+    padding: 1.5rem;
+}
+
+/* Sección de grabación */
+.recording-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.recording-visualizer {
+    width: 100%;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.audio-waves {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.audio-waves span {
+    display: block;
+    width: 4px;
+    margin: 0 3px;
+    background-color: #0d6efd;
+    border-radius: 3px;
+    animation: wave 1.2s infinite ease-in-out;
+}
+
+.audio-waves span:nth-child(1) { animation-delay: 0s; height: 15px; }
+.audio-waves span:nth-child(2) { animation-delay: 0.2s; height: 35px; }
+.audio-waves span:nth-child(3) { animation-delay: 0.4s; height: 60px; }
+.audio-waves span:nth-child(4) { animation-delay: 0.6s; height: 45px; }
+.audio-waves span:nth-child(5) { animation-delay: 0.8s; height: 25px; }
+.audio-waves span:nth-child(6) { animation-delay: 1s; height: 10px; }
+
+@keyframes wave {
+    0%, 100% {
+        transform: scaleY(0.5);
+    }
+    50% {
+        transform: scaleY(1.2);
+    }
 }
 
 .recording-controls {
     display: flex;
     align-items: center;
-    margin-bottom: 1.5rem;
+    justify-content: center;
+    gap: 1rem;
+    width: 100%;
 }
 
-.recording-btn {
+.action-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    gap: 10px;
+    min-width: 200px;
+}
+
+.action-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.start-btn {
+    background: linear-gradient(45deg, #0d6efd, #5c9aff);
+    border: none;
+}
+
+.stop-btn {
+    background: linear-gradient(45deg, #dc3545, #ff6b6b);
+    border: none;
     position: relative;
 }
 
-.recording-btn::before {
+.stop-btn::before {
     content: '';
     position: absolute;
-    top: -5px;
-    right: -5px;
-    width: 10px;
-    height: 10px;
+    top: -4px;
+    right: -4px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background-color: red;
     animation: pulse 1.5s infinite;
 }
 
+.process-btn {
+    background: linear-gradient(45deg, #198754, #28a745);
+    border: none;
+}
+
 @keyframes pulse {
     0% {
         opacity: 1;
+        transform: scale(1);
     }
     50% {
         opacity: 0.5;
+        transform: scale(1.2);
     }
     100% {
         opacity: 1;
+        transform: scale(1);
     }
 }
 
+/* Input con ícono */
+.input-with-icon {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+}
+
+/* Vista previa de audio */
+.audio-card {
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: #e9ecef;
+    border: none;
+}
+
+.custom-audio-player {
+    background-color: transparent;
+}
+
+.custom-audio-player:focus {
+    outline: none;
+}
+
+/* Listado de grabaciones */
+.recordings-card {
+    height: calc(100% - 1rem);
+}
+
 .recordings-list {
-    max-height: 600px;
+    max-height: 500px;
     overflow-y: auto;
+    padding-right: 5px;
+}
+
+.recordings-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.recordings-list::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
 }
 
 .recording-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem;
-    border-bottom: 1px solid #e0e0e0;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border-radius: 8px;
+    background-color: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
 }
 
-.recording-item:last-child {
-    border-bottom: none;
+.recording-item:hover {
+    background-color: #ffffff;
+    transform: translateX(3px);
 }
 
 .recording-info {
     flex: 1;
+    padding-right: 1rem;
 }
 
 .recording-info h5 {
     margin-bottom: 0.25rem;
     font-size: 1rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
 }
 
-.recording-info p {
-    margin-bottom: 0;
+.recording-meta {
+    display: flex;
+    gap: 10px;
+    align-items: center;
     font-size: 0.8rem;
+    color: #6c757d;
 }
 
-.transcription-content,
-.summary-content {
+.recording-date {
+    display: flex;
+    align-items: center;
+}
+
+.recording-duration {
+    display: flex;
+    align-items: center;
+}
+
+.recording-duration:before {
+    content: '•';
+    margin-right: 10px;
+}
+
+.recording-action-btn {
+    border-radius: 50px;
+    padding: 0.25rem 1rem;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Estado vacío */
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Sección de resultados */
+.result-card {
+    margin-top: 2rem;
+}
+
+.result-section {
     padding: 1rem;
-    background-color: #f8f9fa;
-    border-radius: 0.25rem;
-    min-height: 150px;
+}
+
+.formatted-transcription,
+.formatted-summary {
     white-space: pre-line;
-    font-size: 0.9rem;
-    line-height: 1.5;
+    line-height: 1.7;
+    font-size: 1rem;
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
-.audio-preview {
-    padding: 1rem;
+.no-content-placeholder {
+    text-align: center;
+    padding: 2rem;
     background-color: #f8f9fa;
-    border-radius: 0.25rem;
+    border-radius: 8px;
+    color: #6c757d;
+}
+
+/* Insights clínicos */
+.insights-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.insight-card {
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #0d6efd;
+}
+
+.insight-card h5 {
+    color: #0d6efd;
+    margin-bottom: 0.75rem;
+}
+
+/* Estilos para pestañas */
+.nav-tabs {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    color: #6c757d;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+}
+
+.nav-tabs .nav-link.active {
+    color: #0d6efd;
+    background-color: transparent;
+    border-bottom: 2px solid #0d6efd;
+}
+
+.nav-tabs .nav-link:hover:not(.active) {
+    border-bottom: 2px solid rgba(13, 110, 253, 0.3);
+}
+
+/* Búsqueda de grabaciones */
+.search-recordings {
+    border-radius: 50px;
+    padding-left: 2.5rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 1rem center;
 }
 
 /* Estilos responsivos */
+@media (max-width: 992px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .quick-actions {
+        width: 100%;
+        display: flex;
+    }
+
+    .quick-actions button {
+        flex: 1;
+    }
+
+    .insight-card {
+        grid-column: span 12;
+    }
+}
+
 @media (max-width: 768px) {
     .recording-controls {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
     }
 
     .recording-controls button {
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.75rem;
         width: 100%;
     }
 
     .recording-controls button.ms-3 {
         margin-left: 0 !important;
+    }
+
+    .stats-row > div {
+        margin-bottom: 1rem;
+    }
+
+    .insights-content {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-title {
+        font-size: 1.8rem;
     }
 }

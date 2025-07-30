@@ -30,9 +30,6 @@ const DashboardNavbar = () => {
                         <Nav.Link as={Link} to="/consultations">
                             <span className="me-1"><IconJournal /></span> Mis Consultas
                         </Nav.Link>
-                        <Nav.Link as={Link} to="/profile">
-                            <span className="me-1"><IconUser /></span> Perfil
-                        </Nav.Link>
                     </Nav>
                     <Nav>
                         {currentUser && (

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Form, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Alert, Form, Spinner, Badge, ProgressBar, Tabs, Tab } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { IconMic, IconStop, IconCpu } from '../../components/Icons';
+import { IconMic, IconStop, IconCpu} from '../../components/Icons';
 import './Dashboard.css';
+import AOS from 'aos';
 
 const Dashboard = () => {
     const [userData, setUserData] = useState(null);
@@ -20,6 +21,12 @@ const Dashboard = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
+        // Inicializar animaciones AOS
+        AOS.init({
+            duration: 800,
+            once: true
+        });
+
         const fetchUserData = async () => {
             try {
                 const token = localStorage.getItem('token');
@@ -186,141 +193,272 @@ const Dashboard = () => {
 
     return (
         <div className="dashboard-page">
-            <Container>
-                <h1 className="mb-4">Dashboard</h1>
-                {error && <Alert variant="danger">{error}</Alert>}
+            <Container fluid className="px-4">
+                <div className="dashboard-header" data-aos="fade-up">
+                    <div>
+                        <h1 className="dashboard-title">Centro de Consultas</h1>
+                        <p className="text-muted">Bienvenido{userData?.nombre ? `, ${userData.nombre}` : ''}. Gestiona tus consultas médicas de forma eficiente.</p>
+                    </div>
+                </div>
 
-                <Row>
-                    <Col md={8}>
-                        <Card className="mb-4">
-                            <Card.Header>
+                {error && <Alert variant="danger" className="mb-4">{error}</Alert>}
+
+                                    <Row id="recording-section">
+                    <Col md={8} data-aos="fade-up" data-aos-delay="200">
+                        <Card className="mb-4 feature-card">
+                            <Card.Header className="d-flex justify-content-between align-items-center">
                                 <h3>Nueva Consulta Médica</h3>
+                                <Badge bg={isRecording ? "danger" : "success"} pill>
+                                    {isRecording ? "Grabando" : "Listo para grabar"}
+                                </Badge>
                             </Card.Header>
                             <Card.Body>
-                                <Form.Group className="mb-3">
+                                <Form.Group className="mb-4">
                                     <Form.Label>Nombre de la consulta</Form.Label>
-                                    <Form.Control
-                                        type="text"
-                                        value={recordingName}
-                                        onChange={(e) => setRecordingName(e.target.value)}
-                                        placeholder="Ej: Consulta Paciente Juan Pérez - 25/07/2025"
-                                        required
-                                    />
+                                    <div className="input">
+                                        <Form.Control
+                                            type="text"
+                                            value={recordingName}
+                                            onChange={(e) => setRecordingName(e.target.value)}
+                                            placeholder="Ej: Consulta Paciente Juan Pérez - 25/07/2025"
+                                            required
+                                            className="form-control-lg"
+                                        />
+                                    </div>
+                                    <Form.Text className="text-muted">
+                                        Un nombre descriptivo te ayudará a identificar fácilmente esta consulta en el futuro.
+                                    </Form.Text>
                                 </Form.Group>
 
-                                <div className="recording-controls mb-4">
-                                    {!isRecording ? (
-                                        <Button 
-                                            variant="primary" 
-                                            onClick={handleStartRecording}
-                                            disabled={processingAudio}
-                                        >
-                                            <span className="me-2"><IconMic /></span>
-                                            Iniciar Grabación
-                                        </Button>
-                                    ) : (
-                                        <Button 
-                                            variant="danger" 
-                                            onClick={handleStopRecording}
-                                            className="recording-btn"
-                                        >
-                                            <span className="me-2"><IconStop /></span>
-                                            Detener Grabación
-                                        </Button>
-                                    )}
+                                                                    <div className="recording-section">
+                                    <div className="recording-visualizer">
+                                        {isRecording && (
+                                            <div className="audio-waves">
+                                                <span></span>
+                                                <span></span>
+                                                <span></span>
+                                                <span></span>
+                                                <span></span>
+                                                <span></span>
+                                            </div>
+                                        )}
+                                    </div>
 
-                                    {audioBlob && !isRecording && (
-                                        <Button 
-                                            variant="success" 
-                                            onClick={handleProcessAudio}
-                                            disabled={processingAudio || !recordingName}
-                                            className="ms-3"
-                                        >
-                                            {processingAudio ? (
-                                                <>
-                                                    <Spinner animation="border" size="sm" className="me-2" />
-                                                    Procesando...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <span className="me-2"><IconCpu /></span>
-                                                    Procesar Audio
-                                                </>
-                                            )}
-                                        </Button>
-                                    )}
+                                    <div className="recording-controls">
+                                        {!isRecording ? (
+                                            <Button 
+                                                variant="primary" 
+                                                size="lg"
+                                                onClick={handleStartRecording}
+                                                disabled={processingAudio}
+                                                className="action-button start-btn"
+                                            >
+                                                <div className="btn-icon"><IconMic /></div>
+                                                <span>Iniciar Grabación</span>
+                                            </Button>
+                                        ) : (
+                                            <Button 
+                                                variant="danger" 
+                                                size="lg"
+                                                onClick={handleStopRecording}
+                                                className="action-button stop-btn"
+                                            >
+                                                <div className="btn-icon"><IconStop /></div>
+                                                <span>Detener Grabación</span>
+                                            </Button>
+                                        )}
+
+                                        {audioBlob && !isRecording && (
+                                            <Button 
+                                                variant="success" 
+                                                size="lg"
+                                                onClick={handleProcessAudio}
+                                                disabled={processingAudio || !recordingName}
+                                                className="action-button process-btn ms-3"
+                                            >
+                                                {processingAudio ? (
+                                                    <>
+                                                        <div className="btn-icon">
+                                                            <Spinner animation="border" size="sm" />
+                                                        </div>
+                                                        <span>Procesando Audio...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div className="btn-icon"><IconCpu /></div>
+                                                        <span>Analizar con IA</span>
+                                                    </>
+                                                )}
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {audioBlob && !isRecording && (
-                                    <div className="audio-preview mb-3">
-                                        <h5>Vista previa del audio:</h5>
-                                        <audio 
-                                            controls 
-                                            src={URL.createObjectURL(audioBlob)}
-                                            className="w-100"
-                                        />
+                                    <div className="audio-preview mb-4" data-aos="fade-up">
+                                        <div className="d-flex justify-content-between align-items-center mb-2">
+                                            <h5 className="mb-0">Vista previa de la grabación</h5>
+                                            <Badge bg="info">Audio grabado correctamente</Badge>
+                                        </div>
+                                        <Card className="audio-card">
+                                            <Card.Body>
+                                                <audio 
+                                                    controls 
+                                                    src={URL.createObjectURL(audioBlob)}
+                                                    className="w-100 custom-audio-player"
+                                                    onLoadedMetadata={(e) => {
+                                                        // Solo para mostrar una barra de progreso ilustrativa
+                                                        const duration = e.target.duration;
+                                                        if (duration && duration !== Infinity) {
+                                                            // Aquí podrías actualizar un estado si quisieras mostrar la duración
+                                                        }
+                                                    }}
+                                                />
+
+                                                {processingAudio && (
+                                                    <div className="mt-3">
+                                                        <p className="mb-2">Progreso del análisis:</p>
+                                                        <ProgressBar animated now={70} label="Analizando audio..." />
+                                                    </div>
+                                                )}
+                                            </Card.Body>
+                                        </Card>
                                     </div>
                                 )}
                             </Card.Body>
                         </Card>
 
                         {(transcription || summary) && (
-                            <Row>
-                                <Col md={12}>
-                                    <Card className="mb-4">
-                                        <Card.Header>
-                                            <h3>Transcripción</h3>
-                                        </Card.Header>
-                                        <Card.Body>
-                                            <div className="transcription-content">
-                                                {transcription || 'No hay transcripción disponible'}
+                            <Card className="result-card mb-4" data-aos="fade-up">
+                                <Card.Header>
+                                    <h3>Resultados del Análisis</h3>
+                                </Card.Header>
+                                <Card.Body>
+                                    <Tabs defaultActiveKey="summary" id="result-tabs" className="mb-4">
+                                        <Tab eventKey="summary" title="Resumen de la Consulta" className="p-3">
+                                            <div className="result-section">
+                                                <div className="summary-header mb-3">
+                                                    <h4>Resumen de la Consulta Médica</h4>
+                                                    <p className="text-muted">Generado por IA basado en la transcripción</p>
+                                                </div>
+                                                <div className="summary-content">
+                                                    {summary ? (
+                                                        <div className="formatted-summary">{summary}</div>
+                                                    ) : (
+                                                        <div className="no-content-placeholder">
+                                                            <p>No hay resumen disponible para esta consulta.</p>
+                                                            <Button variant="outline-primary" size="sm">Regenerar Resumen</Button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </Card.Body>
-                                    </Card>
-                                </Col>
-                                <Col md={12}>
-                                    <Card className="mb-4">
-                                        <Card.Header>
-                                            <h3>Resumen de la Consulta</h3>
-                                        </Card.Header>
-                                        <Card.Body>
-                                            <div className="summary-content">
-                                                {summary || 'No hay resumen disponible'}
+                                        </Tab>
+                                        <Tab eventKey="transcription" title="Transcripción Completa" className="p-3">
+                                            <div className="result-section">
+                                                <div className="transcription-header mb-3">
+                                                    <h4>Transcripción Textual</h4>
+                                                    <p className="text-muted">Texto completo convertido del audio</p>
+                                                </div>
+                                                <div className="transcription-content">
+                                                    {transcription ? (
+                                                        <div className="formatted-transcription">{transcription}</div>
+                                                    ) : (
+                                                        <div className="no-content-placeholder">
+                                                            <p>No hay transcripción disponible para esta consulta.</p>
+                                                            <Button variant="outline-primary" size="sm">Regenerar Transcripción</Button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </Card.Body>
-                                    </Card>
-                                </Col>
-                            </Row>
+                                        </Tab>
+                                        <Tab eventKey="insights" title="Insights Clínicos" className="p-3">
+                                            <div className="result-section">
+                                                <div className="insights-header mb-3">
+                                                    <h4>Insights Clínicos</h4>
+                                                    <p className="text-muted">Información relevante detectada por IA</p>
+                                                </div>
+                                                <div className="insights-content">
+                                                    <div className="insight-card">
+                                                        <h5>Diagnóstico Potencial</h5>
+                                                        <p>Basado en la transcripción, se pueden identificar posibles diagnósticos relacionados.</p>
+                                                    </div>
+                                                    <div className="insight-card">
+                                                        <h5>Medicación Mencionada</h5>
+                                                        <p>Lista de medicamentos mencionados durante la consulta.</p>
+                                                    </div>
+                                                    <div className="insight-card">
+                                                        <h5>Próximos Pasos</h5>
+                                                        <p>Sugerencias para el seguimiento del paciente.</p>
+                                                    </div>
+                                                </div>
+                                                <div className="mt-3 text-center">
+                                                    <Button variant="outline-primary">Generar Informe Completo</Button>
+                                                </div>
+                                            </div>
+                                        </Tab>
+                                    </Tabs>
+                                </Card.Body>
+                            </Card>
                         )}
                     </Col>
 
-                    <Col md={4}>
-                        <Card>
-                            <Card.Header>
-                                <h3>Consultas Previas</h3>
+                                            <Col md={4} data-aos="fade-up" data-aos-delay="300">
+                        <Card className="recordings-card feature-card">
+                            <Card.Header className="d-flex justify-content-between align-items-center">
+                                <h3>Historial de Consultas</h3>
+                                <Badge bg="primary" pill>{recordings.length} Total</Badge>
                             </Card.Header>
                             <Card.Body>
+                                <div className="mb-3">
+                                    <Form.Control 
+                                        type="text" 
+                                        placeholder="Buscar consulta..." 
+                                        className="search-recordings"
+                                    />
+                                </div>
+
                                 {recordings.length === 0 ? (
-                                    <p>No hay consultas previas</p>
+                                    <div className="empty-state">
+                                        <div className="empty-icon">📋</div>
+                                        <h5>No hay consultas previas</h5>
+                                        <p>Las consultas que grabes aparecerán aquí</p>
+                                    </div>
                                 ) : (
                                     <div className="recordings-list">
                                         {recordings.map(recording => (
                                             <div key={recording._id} className="recording-item">
                                                 <div className="recording-info">
                                                     <h5>{recording.name}</h5>
-                                                    <p className="text-muted">
-                                                        {new Date(recording.createdAt).toLocaleDateString()}
-                                                    </p>
+                                                    <div className="recording-meta">
+                                                        <span className="recording-date">
+                                                            {new Date(recording.createdAt).toLocaleDateString('es-ES', {
+                                                                day: 'numeric',
+                                                                month: 'short',
+                                                                year: 'numeric'
+                                                            })}
+                                                        </span>
+                                                        {recording.duration && (
+                                                            <span className="recording-duration">
+                                                                {Math.floor(recording.duration / 60)}:{(recording.duration % 60).toString().padStart(2, '0')}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <Button 
                                                     variant="outline-primary" 
-                                                    size="sm"
+                                                    className="recording-action-btn"
                                                     onClick={() => handleViewRecording(recording._id)}
                                                 >
                                                     Ver
                                                 </Button>
                                             </div>
                                         ))}
+                                    </div>
+                                )}
+
+                                {recordings.length > 0 && (
+                                    <div className="text-center mt-3">
+                                        <Button variant="link">Ver Todas las Consultas</Button>
                                     </div>
                                 )}
                             </Card.Body>

@@ -13,8 +13,10 @@
   "dependencies": {
     "aos": "^2.3.4",
     "bootstrap": "^5.3.7",
+    "chart.js": "^4.4.0",
     "react": "^19.1.0",
     "react-bootstrap": "^2.10.10",
+    "react-chartjs-2": "^5.2.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.7.0"
   }
