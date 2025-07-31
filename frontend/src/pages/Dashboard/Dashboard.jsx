@@ -3,6 +3,8 @@ import { Container, Row, Col, Card, Button, Alert, Form, Spinner } from 'react-b
 import { useNavigate } from 'react-router-dom';
 import { IconMic, IconStop, IconCpu } from '../../components/Icons';
 import './Dashboard.css';
+import API_BASE from '../../apiConfig';
+
 
 const Dashboard = () => {
     const [userData, setUserData] = useState(null);
@@ -99,59 +101,91 @@ const Dashboard = () => {
         }
     };
 
-    const handleProcessAudio = async () => {
-        if (!audioBlob || !recordingName) {
-            setError('Por favor grabe audio y asigne un nombre a la consulta');
-            return;
+   const handleProcessAudio = async () => {
+    if (!audioBlob) {
+        setError('Por favor grabe audio');
+        return;
+    }
+
+    setProcessingAudio(true);
+    setError('');
+    setTranscription('');
+    setSummary('');
+
+    try {
+        const formData = new FormData();
+        formData.append('audioFile', audioBlob);
+
+        // 1. Subir audio
+        const uploadResponse = await fetch(`${API_BASE}/recordings/upload`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!uploadResponse.ok) {
+            throw new Error('Error al subir el audio');
         }
 
-        setProcessingAudio(true);
-        setError('');
+        const uploadData = await uploadResponse.json();
+        const uploadedFileName = uploadData.uri.split('/').pop();
+        const summaryFileName = `resumen-${uploadedFileName}.txt`;
 
-        try {
-            const token = localStorage.getItem('token');
-            const formData = new FormData();
-            formData.append('audioFile', audioBlob);
-            formData.append('name', recordingName);
+        // 2. Esperar hasta que el resumen esté listo (polling)
+        const waitForFinalize = async (filename, retries = 10, delay = 3000) => {
+            for (let i = 0; i < retries; i++) {
+                const res = await fetch(`${API_BASE}/recordings/finalize`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(filename)
+                });
 
-            const response = await fetch('http://localhost:5000/api/recordings/transcribe', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            });
-
-            if (!response.ok) {
-                throw new Error('Error al procesar el audio');
-            }
-
-            const data = await response.json();
-            setTranscription(data.transcription);
-            setSummary(data.summary);
-
-            // Actualizar la lista de grabaciones
-            const recordingsResponse = await fetch('http://localhost:5000/api/recordings', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`
+                if (res.ok) {
+                    const result = await res.json();
+                    return result;
                 }
-            });
 
-            if (recordingsResponse.ok) {
-                const recordingsData = await recordingsResponse.json();
-                setRecordings(recordingsData);
+                await new Promise(resolve => setTimeout(resolve, delay));
             }
 
-            setRecordingName('');
-            setAudioBlob(null);
+            throw new Error('❌ El resumen no estuvo listo a tiempo.');
+        };
+
+        // 3. Ejecutar finalize con espera
+        const resultData = await waitForFinalize(summaryFileName);
+        console.log('✅ Grabación finalizada:', resultData.message);
+
+        // Mostrar automáticamente el resumen
+        setSummary(resultData.summary || 'No se pudo obtener el resumen.');
+        setTranscription("Transcripción disponible en el archivo de GCS."); // opcional
+
+
+        // 4. Refrescar la lista de grabaciones
+        const token = localStorage.getItem('token');
+        const recordingsResponse = await fetch(`${API_BASE}/recordings`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (recordingsResponse.ok) {
+            const recordingsData = await recordingsResponse.json();
+            setRecordings(recordingsData);
+        }
+
+        setAudioBlob(null);
+        setRecordingName('');
         } catch (err) {
             console.error('Error:', err);
-            setError('Error al procesar el audio. Por favor, intente nuevamente.');
+            setError('Error al procesar el audio. Intenta nuevamente.');
         } finally {
             setProcessingAudio(false);
         }
     };
+
+
 
     const handleViewRecording = async (recordingId) => {
         try {
