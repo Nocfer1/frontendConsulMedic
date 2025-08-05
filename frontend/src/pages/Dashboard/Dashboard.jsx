@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { IconMic, IconStop, IconCpu } from '../../components/Icons';
 import './Dashboard.css';
 import API_BASE from '../../apiConfig';
-
+import { motion } from "motion/react"
 
 const Dashboard = () => {
     const [userData, setUserData] = useState(null);
@@ -101,82 +101,82 @@ const Dashboard = () => {
         }
     };
 
-   const handleProcessAudio = async () => {
-    if (!audioBlob) {
-        setError('Por favor grabe audio');
-        return;
-    }
-
-    setProcessingAudio(true);
-    setError('');
-    setTranscription('');
-    setSummary('');
-
-    try {
-        const formData = new FormData();
-        formData.append('audioFile', audioBlob);
-
-        // 1. Subir audio
-        const uploadResponse = await fetch(`${API_BASE}/recordings/upload`, {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!uploadResponse.ok) {
-            throw new Error('Error al subir el audio');
+    const handleProcessAudio = async () => {
+        if (!audioBlob) {
+            setError('Por favor grabe audio');
+            return;
         }
 
-        const uploadData = await uploadResponse.json();
-        const uploadedFileName = uploadData.uri.split('/').pop();
-        const summaryFileName = `resumen-${uploadedFileName}.txt`;
+        setProcessingAudio(true);
+        setError('');
+        setTranscription('');
+        setSummary('');
 
-        // 2. Esperar hasta que el resumen esté listo (polling)
-        const waitForFinalize = async (filename, retries = 10, delay = 3000) => {
-            for (let i = 0; i < retries; i++) {
-                const res = await fetch(`${API_BASE}/recordings/finalize`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(filename)
-                });
+        try {
+            const formData = new FormData();
+            formData.append('audioFile', audioBlob);
 
-                if (res.ok) {
-                    const result = await res.json();
-                    return result;
+            // 1. Subir audio
+            const uploadResponse = await fetch(`${API_BASE}/recordings/upload`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!uploadResponse.ok) {
+                throw new Error('Error al subir el audio');
+            }
+
+            const uploadData = await uploadResponse.json();
+            const uploadedFileName = uploadData.uri.split('/').pop();
+            const summaryFileName = `resumen-${uploadedFileName}.txt`;
+
+            // 2. Esperar hasta que el resumen esté listo (polling)
+            const waitForFinalize = async (filename, retries = 10, delay = 3000) => {
+                for (let i = 0; i < retries; i++) {
+                    const res = await fetch(`${API_BASE}/recordings/finalize`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(filename)
+                    });
+
+                    if (res.ok) {
+                        const result = await res.json();
+                        return result;
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, delay));
                 }
 
-                await new Promise(resolve => setTimeout(resolve, delay));
+                throw new Error('❌ El resumen no estuvo listo a tiempo.');
+            };
+
+            // 3. Ejecutar finalize con espera
+            const resultData = await waitForFinalize(summaryFileName);
+            console.log('✅ Grabación finalizada:', resultData.message);
+
+            // Mostrar automáticamente el resumen
+            setSummary(resultData.summary || 'No se pudo obtener el resumen.');
+            setTranscription("Transcripción disponible en el archivo de GCS."); // opcional
+
+
+            // 4. Refrescar la lista de grabaciones
+            const token = localStorage.getItem('token');
+            const recordingsResponse = await fetch(`${API_BASE}/recordings`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (recordingsResponse.ok) {
+                const recordingsData = await recordingsResponse.json();
+                setRecordings(recordingsData);
             }
 
-            throw new Error('❌ El resumen no estuvo listo a tiempo.');
-        };
-
-        // 3. Ejecutar finalize con espera
-        const resultData = await waitForFinalize(summaryFileName);
-        console.log('✅ Grabación finalizada:', resultData.message);
-
-        // Mostrar automáticamente el resumen
-        setSummary(resultData.summary || 'No se pudo obtener el resumen.');
-        setTranscription("Transcripción disponible en el archivo de GCS."); // opcional
-
-
-        // 4. Refrescar la lista de grabaciones
-        const token = localStorage.getItem('token');
-        const recordingsResponse = await fetch(`${API_BASE}/recordings`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (recordingsResponse.ok) {
-            const recordingsData = await recordingsResponse.json();
-            setRecordings(recordingsData);
-        }
-
-        setAudioBlob(null);
-        setRecordingName('');
+            setAudioBlob(null);
+            setRecordingName('');
         } catch (err) {
             console.error('Error:', err);
             setError('Error al procesar el audio. Intenta nuevamente.');
@@ -244,31 +244,38 @@ const Dashboard = () => {
 
                                 <div className="recording-controls mb-4">
                                     {!isRecording ? (
-                                        <Button 
-                                            variant="primary" 
+                                        <motion.button
+                                            className="btn btn-primary"
                                             onClick={handleStartRecording}
                                             disabled={processingAudio}
+                                            whileHover={{ scale : 1.05}}
+                                            whileTap={{ scale: 0.95 }}
+                                            transition={{ type : "spring", stiffness: 300}}
                                         >
                                             <span className="me-2"><IconMic /></span>
                                             Iniciar Grabación
-                                        </Button>
+                                        </motion.button>
                                     ) : (
-                                        <Button 
-                                            variant="danger" 
+                                        <motion.button
+                                            className="btn btn-danger recording-btn"
                                             onClick={handleStopRecording}
-                                            className="recording-btn"
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            transition={{ type: "spring", stiffness: 300 }}
                                         >
                                             <span className="me-2"><IconStop /></span>
                                             Detener Grabación
-                                        </Button>
+                                        </motion.button>
                                     )}
 
                                     {audioBlob && !isRecording && (
-                                        <Button 
-                                            variant="success" 
+                                        <motion.button
+                                            className="btn btn-success ms-3"
                                             onClick={handleProcessAudio}
                                             disabled={processingAudio || !recordingName}
-                                            className="ms-3"
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            transition={{ type: "spring", stiffness: 300 }}
                                         >
                                             {processingAudio ? (
                                                 <>
@@ -281,15 +288,15 @@ const Dashboard = () => {
                                                     Procesar Audio
                                                 </>
                                             )}
-                                        </Button>
+                                        </motion.button>
                                     )}
                                 </div>
 
                                 {audioBlob && !isRecording && (
                                     <div className="audio-preview mb-3">
                                         <h5>Vista previa del audio:</h5>
-                                        <audio 
-                                            controls 
+                                        <audio
+                                            controls
                                             src={URL.createObjectURL(audioBlob)}
                                             className="w-100"
                                         />
@@ -346,8 +353,8 @@ const Dashboard = () => {
                                                         {new Date(recording.createdAt).toLocaleDateString()}
                                                     </p>
                                                 </div>
-                                                <Button 
-                                                    variant="outline-primary" 
+                                                <Button
+                                                    variant="outline-primary"
                                                     size="sm"
                                                     onClick={() => handleViewRecording(recording._id)}
                                                 >
