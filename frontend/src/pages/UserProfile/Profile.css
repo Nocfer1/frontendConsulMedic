@@ -1,66 +1,230 @@
-.profile-page {
-    padding: 2rem 0;
-    min-height: 80vh;
+/* ==== Animación suave para transiciones ==== */
+* {
+    transition: all 0.25s ease;
 }
 
-.stats-item {
-    display: flex;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid #e0e0e0;
+/* ==== Tarjetas con hover animado ==== */
+.card {
+    border: none;
+    border-radius: 14px;
+    background-color: #fff;
+    transform: translateY(0);
 }
 
-.stats-item:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: 0;
+.card:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
 }
 
+/* ==== Botones ==== */
+button,
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    transform: scale(1);
+}
+
+button:hover,
+.btn:hover {
+    transform: scale(1.03);
+    box-shadow: 0 6px 16px rgba(13, 110, 253, 0.25);
+}
+
+button:active,
+.btn:active {
+    transform: scale(0.97);
+}
+
+/* ==== Iconos de estadísticas ==== */
 .stats-icon {
-    width: 50px;
-    height: 50px;
+    width: 54px;
+    height: 54px;
     border-radius: 50%;
-    background-color: rgba(13, 110, 253, 0.1);
+    background: linear-gradient(135deg, rgba(13,110,253,0.15), rgba(13,110,253,0.05));
     color: #0d6efd;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
-    margin-right: 1rem;
+    font-size: 1.6rem;
 }
 
-.stats-info h4 {
-    font-size: 1.5rem;
-    margin-bottom: 0.25rem;
-    font-weight: 600;
-    color: #333;
+.stats-item:hover .stats-icon {
+    transform: rotate(6deg) scale(1.1);
+    background: linear-gradient(135deg, rgba(13,110,253,0.3), rgba(13,110,253,0.15));
 }
 
-.stats-info p {
-    margin: 0;
-    color: #6c757d;
-}
-
-.plan-features {
-    list-style: none;
-    padding-left: 0;
-}
-
+/* ==== Lista de características ==== */
 .plan-features li {
     margin-bottom: 0.5rem;
     display: flex;
     align-items: center;
+    font-size: 0.95rem;
+    padding: 0.25rem 0.4rem;
+    border-radius: 6px;
 }
 
-.plan-features li i {
+.plan-features li:hover {
+    background-color: rgba(13, 110, 253, 0.08);
+    transform: translateX(4px);
+}
+
+/* ==== Drawer lateral ==== */
+.drawer-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 380px;
+    max-width: 95%;
+    height: 100vh;
+    background: #fff;
+    padding: 1.5rem;
+    box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    overflow-y: auto;
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+    transform: translateX(0);
+}
+
+.drawer-panel:hover {
+    box-shadow: -6px 0 16px rgba(0, 0, 0, 0.15);
+}
+
+/* ==== Overlay oscuro ==== */
+.drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    opacity: 0.5;
+    z-index: 999;
+}
+
+/* ==== Formularios dentro del Drawer ==== */
+.drawer-panel .form-label {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.drawer-panel input {
+    border-radius: 8px;
+}
+
+.drawer-panel .btn {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.drawer-panel .btn:hover {
+    transform: scale(1.03);
+}
+
+/* ==== Responsive ==== */
+@media (max-width: 768px) {
+    .drawer-panel {
+        width: 100%;
+        border-radius: 0;
+    }
+}
+.profile-page h1 {
+    margin-top: 1.5rem; /* Baja un poco el título */
+}
+
+.profile-page .btn-outline-primary {
+    margin-top: 1.5rem; /* Baja un poco el botón */
+}
+/* ==== Info usuario ==== */
+.drawer-user {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.drawer-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #0d6efd;
+}
+
+/* ==== Opciones ==== */
+.drawer-options {
+    margin-top: 1.5rem;
+}
+
+.drawer-option:hover {
+    background: #e9f2ff;
     color: #0d6efd;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+/* ==== Sección usuario en el drawer ==== */
+.drawer-user {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.drawer-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #0d6efd;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.drawer-user h5 {
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+.drawer-user small {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+/* ==== Opciones del drawer ==== */
+.drawer-options {
+    margin-top: 1.5rem;
+}
+
+.drawer-option {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    background: #f8f9fa;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #333;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.drawer-option:hover {
+    background: #e9f2ff;
+    color: #0d6efd;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    transform: translateX(2px);
+}
+
+.drawer-option i {
+    font-size: 1.1rem;
     margin-right: 0.5rem;
 }
 
-/* Estilos responsivos */
-@media (max-width: 768px) {
-    .profile-page .row {
-        flex-direction: column-reverse;
-    }
+/* ==== Botón cerrar ==== */
+.drawer-panel .btn-secondary {
+    border-radius: 8px;
+    font-weight: 500;
+    background: #0d6efd;
 }
+
+.drawer-panel .btn-secondary:hover {
+    background-color: #5a6268;
+}
+
