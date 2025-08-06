@@ -25,6 +25,9 @@ import ProtectedRoute from './pages/ProtectedRoute';
 import Profile from './pages/UserProfile/Profile';
 import Consultations from './pages/Consultations/Consultations';
 import { AuthProvider } from './context/AuthContext';
+import EditProfile from "./pages/EditProfile/EditProfile";
+import ChangePassword from "./pages/ChangePassword/ChangePassword";
+import ProfileSettings from "./pages/ProfileSettings/ProfileSettings";
 
 const AppRoutes = () => {
     const location = useLocation();
@@ -71,6 +74,9 @@ const AppRoutes = () => {
                         <Route path="/free-trial-setup" element={<FreeTrialSetup />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/consultations" element={<Consultations />} />
+                        <Route path="/profile/edit" element={<EditProfile />} />
+                        <Route path="/profile/change-password" element={<ChangePassword />} />
+                        <Route path="/profile/settings" element={<ProfileSettings />} />
                     </Route>
                 </Routes>
             </div>

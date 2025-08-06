@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import API_BASE from '../../apiConfig';
 import './Profile.css'; 
 import { motion, AnimatePresence, animate } from "motion/react";
+import { useNavigate } from 'react-router-dom';
 
 // Componente para animar números
 const AnimatedNumber = ({ value }) => {
@@ -22,6 +23,7 @@ const AnimatedNumber = ({ value }) => {
 
 const Profile = () => {
     const { currentUser } = useAuth();
+    const navigate = useNavigate();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [userData, setUserData] = useState({
         nombre: '',
@@ -89,49 +91,7 @@ const Profile = () => {
         fetchUserData();
     }, []);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setUserData({
-            ...userData,
-            [name]: value
-        });
-    };
 
-    const handleProfileUpdate = async (e) => {
-        e.preventDefault();
-        setError('');
-        setSuccess('');
-        setUpdating(true);
-
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) throw new Error('No se encontró la sesión del usuario');
-
-            const response = await fetch(`${API_BASE}/user/update-profile`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    nombre: userData.nombre,
-                    especialidad: userData.especialidad
-                })
-            });
-
-            if (response.ok) {
-                setSuccess('Perfil actualizado correctamente');
-            } else {
-                const text = await response.text();
-                throw new Error(text || 'Error al actualizar el perfil');
-            }
-        } catch (error) {
-            console.error('Error al actualizar perfil:', error);
-            setError(error.message || 'Error al actualizar el perfil');
-        } finally {
-            setUpdating(false);
-        }
-    };
 
     const handlePasswordUpdate = async (e) => {
         e.preventDefault();
@@ -261,7 +221,6 @@ const Profile = () => {
                     </Col>
                 </Row>
 
-                {/* Drawer lateral */}
                 {/* Drawer lateral */}
                 <AnimatePresence>
                     {drawerOpen && (
