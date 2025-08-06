@@ -52,8 +52,4 @@ section {
     padding: 60px 0;
   }
 }
-.card {
-  border: 1px solid #dee2e6 !important;
-  border-radius: 0.5rem;
-  background-color: #fff;
-}
+
