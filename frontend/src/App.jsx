@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'aos/dist/aos.css';
 import './App.css';
+
 import NavigationBar from './components/Navbar/Navbar';
 import DashboardNavbar from './components/Navbar/DashboardNavbar';
 import Hero from './components/Hero/Hero';
@@ -25,7 +26,7 @@ import Profile from './pages/UserProfile/Profile';
 import Consultations from './pages/Consultations/Consultations';
 import { AuthProvider } from './context/AuthContext';
 
-const AppContent = () => {
+const AppRoutes = () => {
     const location = useLocation();
     const [isDashboardPath, setIsDashboardPath] = useState(false);
 
@@ -80,11 +81,11 @@ const AppContent = () => {
 
 function App() {
     return (
-        <AuthProvider>
-            <Router>
-                <AppContent />
-            </Router>
-        </AuthProvider>
+        <Router>
+            <AuthProvider>
+                <AppRoutes />
+            </AuthProvider>
+        </Router>
     );
 }
 

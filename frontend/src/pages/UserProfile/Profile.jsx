@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
-import './Profile.css';
+import API_BASE from '../../apiConfig';
+import './Profile.css'; 
 
 const Profile = () => {
     const { currentUser } = useAuth();
@@ -35,7 +36,7 @@ const Profile = () => {
                 }
 
                 // Obtener información del usuario
-                const userResponse = await fetch('http://localhost:5000/api/user/profile', {
+                const userResponse = await fetch(`${API_BASE}/user/profile`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -55,7 +56,7 @@ const Profile = () => {
                 }
 
                 // Obtener estadísticas del usuario
-                const statsResponse = await fetch('http://localhost:5000/api/user/stats', {
+                const statsResponse = await fetch(`${API_BASE}/user/stats`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -98,7 +99,7 @@ const Profile = () => {
                 throw new Error('No se encontró la sesión del usuario');
             }
 
-            const response = await fetch('http://localhost:5000/api/user/update-profile', {
+            const response = await fetch(`${API_BASE}/user/update-profile`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -143,7 +144,7 @@ const Profile = () => {
                 throw new Error('No se encontró la sesión del usuario');
             }
 
-            const response = await fetch('http://localhost:5000/api/user/change-password', {
+            const response = await fetch(`${API_BASE}/user/change-password`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

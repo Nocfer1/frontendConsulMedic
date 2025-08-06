@@ -1,4 +1,4 @@
-
-const API_BASE = 'https://consulmedic-api-811078236071.us-central1.run.app/api';
-
+const API_BASE = import.meta.env.VITE_API_URL;
 export default API_BASE;
+
+console.log('🌐 API_BASE:', import.meta.env.VITE_API_URL);
