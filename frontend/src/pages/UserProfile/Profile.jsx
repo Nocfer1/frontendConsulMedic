@@ -3,9 +3,26 @@ import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-b
 import { useAuth } from '../../context/AuthContext';
 import API_BASE from '../../apiConfig';
 import './Profile.css'; 
+import { motion, AnimatePresence, animate } from "motion/react";
+
+// Componente para animar números
+const AnimatedNumber = ({ value }) => {
+    const [display, setDisplay] = useState(0);
+
+    useEffect(() => {
+        const controls = animate(0, value, {
+            duration: 1,
+            onUpdate: latest => setDisplay(Math.floor(latest))
+        });
+        return () => controls.stop();
+    }, [value]);
+
+    return <h4>{display}</h4>;
+};
 
 const Profile = () => {
     const { currentUser } = useAuth();
+    const [drawerOpen, setDrawerOpen] = useState(false);
     const [userData, setUserData] = useState({
         nombre: '',
         correo: '',
@@ -38,29 +55,23 @@ const Profile = () => {
                 // Obtener información del usuario
                 const userResponse = await fetch(`${API_BASE}/user/profile`, {
                     method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (userResponse.ok) {
                     const user = await userResponse.json();
-                    setUserData({
-                        ...userData,
+                    setUserData(prev => ({
+                        ...prev,
                         nombre: user.nombre || '',
                         correo: user.correo || '',
                         especialidad: user.especialidad || ''
-                    });
-                } else {
-                    throw new Error('No se pudo obtener la información del usuario');
+                    }));
                 }
 
                 // Obtener estadísticas del usuario
                 const statsResponse = await fetch(`${API_BASE}/user/stats`, {
                     method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (statsResponse.ok) {
@@ -94,10 +105,7 @@ const Profile = () => {
 
         try {
             const token = localStorage.getItem('token');
-
-            if (!token) {
-                throw new Error('No se encontró la sesión del usuario');
-            }
+            if (!token) throw new Error('No se encontró la sesión del usuario');
 
             const response = await fetch(`${API_BASE}/user/update-profile`, {
                 method: 'PUT',
@@ -139,10 +147,7 @@ const Profile = () => {
 
         try {
             const token = localStorage.getItem('token');
-
-            if (!token) {
-                throw new Error('No se encontró la sesión del usuario');
-            }
+            if (!token) throw new Error('No se encontró la sesión del usuario');
 
             const response = await fetch(`${API_BASE}/user/change-password`, {
                 method: 'PUT',
@@ -187,172 +192,60 @@ const Profile = () => {
     return (
         <div className="profile-page">
             <Container>
-                <h1 className="mb-4">Mi Perfil</h1>
+                <Row className="mb-3">
+                    <Col>
+                        <h1>Mi Perfil</h1>
+                    </Col>
+                    <Col className="text-end">
+                        <Button variant="outline-primary" onClick={() => setDrawerOpen(true)}>
+                            ⚙ Configuración
+                        </Button>
+                    </Col>
+                </Row>
+
                 {error && <Alert variant="danger">{error}</Alert>}
                 {success && <Alert variant="success">{success}</Alert>}
 
                 <Row>
-                    <Col md={8}>
+                    <Col md={6}>
                         <Card className="mb-4">
-                            <Card.Header>
-                                <h3>Información Personal</h3>
-                            </Card.Header>
-                            <Card.Body>
-                                <Form onSubmit={handleProfileUpdate}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Nombre Completo</Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            name="nombre"
-                                            value={userData.nombre}
-                                            onChange={handleChange}
-                                            required
-                                        />
-                                    </Form.Group>
-
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Email</Form.Label>
-                                        <Form.Control
-                                            type="email"
-                                            name="correo"
-                                            value={userData.correo}
-                                            disabled
-                                        />
-                                        <Form.Text className="text-muted">
-                                            El email no se puede cambiar
-                                        </Form.Text>
-                                    </Form.Group>
-
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Especialidad Médica</Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            name="especialidad"
-                                            value={userData.especialidad}
-                                            onChange={handleChange}
-                                        />
-                                    </Form.Group>
-
-                                    <Button 
-                                        variant="primary" 
-                                        type="submit"
-                                        disabled={updating}
-                                    >
-                                        {updating ? (
-                                            <>
-                                                <Spinner animation="border" size="sm" className="me-2" />
-                                                Actualizando...
-                                            </>
-                                        ) : 'Actualizar Perfil'}
-                                    </Button>
-                                </Form>
-                            </Card.Body>
-                        </Card>
-
-                        <Card>
-                            <Card.Header>
-                                <h3>Cambiar Contraseña</h3>
-                            </Card.Header>
-                            <Card.Body>
-                                <Form onSubmit={handlePasswordUpdate}>
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Contraseña Actual</Form.Label>
-                                        <Form.Control
-                                            type="password"
-                                            name="currentPassword"
-                                            value={userData.currentPassword}
-                                            onChange={handleChange}
-                                            required
-                                        />
-                                    </Form.Group>
-
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Nueva Contraseña</Form.Label>
-                                        <Form.Control
-                                            type="password"
-                                            name="newPassword"
-                                            value={userData.newPassword}
-                                            onChange={handleChange}
-                                            required
-                                        />
-                                    </Form.Group>
-
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Confirmar Nueva Contraseña</Form.Label>
-                                        <Form.Control
-                                            type="password"
-                                            name="confirmPassword"
-                                            value={userData.confirmPassword}
-                                            onChange={handleChange}
-                                            required
-                                        />
-                                    </Form.Group>
-
-                                    <Button 
-                                        variant="primary" 
-                                        type="submit"
-                                        disabled={updating}
-                                    >
-                                        {updating ? (
-                                            <>
-                                                <Spinner animation="border" size="sm" className="me-2" />
-                                                Actualizando...
-                                            </>
-                                        ) : 'Cambiar Contraseña'}
-                                    </Button>
-                                </Form>
-                            </Card.Body>
-                        </Card>
-                    </Col>
-
-                    <Col md={4}>
-                        <Card className="mb-4">
-                            <Card.Header>
-                                <h3>Estadísticas</h3>
-                            </Card.Header>
+                            <Card.Header><h3>Estadísticas</h3></Card.Header>
                             <Card.Body>
                                 <div className="stats-item">
-                                    <div className="stats-icon">
-                                        <i className="bi bi-file-earmark-medical"></i>
-                                    </div>
+                                    <div className="stats-icon"><i className="bi bi-file-earmark-medical"></i></div>
                                     <div className="stats-info">
-                                        <h4>{stats.totalConsultas}</h4>
+                                        <AnimatedNumber value={stats.totalConsultas} />
                                         <p>Consultas Totales</p>
                                     </div>
                                 </div>
 
                                 <div className="stats-item">
-                                    <div className="stats-icon">
-                                        <i className="bi bi-file-text"></i>
-                                    </div>
+                                    <div className="stats-icon"><i className="bi bi-file-text"></i></div>
                                     <div className="stats-info">
-                                        <h4>{stats.totalTranscripciones}</h4>
+                                        <AnimatedNumber value={stats.totalTranscripciones} />
                                         <p>Transcripciones</p>
                                     </div>
                                 </div>
 
                                 <div className="stats-item">
-                                    <div className="stats-icon">
-                                        <i className="bi bi-clock-history"></i>
-                                    </div>
+                                    <div className="stats-icon"><i className="bi bi-clock-history"></i></div>
                                     <div className="stats-info">
-                                        <h4>{stats.tiempoAhorrado} hrs</h4>
+                                        <AnimatedNumber value={stats.tiempoAhorrado} /> hrs
                                         <p>Tiempo Ahorrado</p>
                                     </div>
                                 </div>
                             </Card.Body>
                         </Card>
+                    </Col>
 
+                    <Col md={6}>
                         <Card>
-                            <Card.Header>
-                                <h3>Plan Actual</h3>
-                            </Card.Header>
+                            <Card.Header><h3>Plan Actual</h3></Card.Header>
                             <Card.Body>
                                 <div className="plan-info">
                                     <h4>Plan Profesional</h4>
                                     <p className="text-primary fw-bold">$49.99/mes</p>
                                     <p>Renovación: 15/08/2025</p>
-
                                     <div className="mt-3">
                                         <h5>Características:</h5>
                                         <ul className="plan-features">
@@ -362,15 +255,86 @@ const Profile = () => {
                                             <li><i className="bi bi-check-circle-fill"></i> Soporte prioritario</li>
                                         </ul>
                                     </div>
-
-                                    <Button variant="outline-primary" className="w-100 mt-3">
-                                        Gestionar Suscripción
-                                    </Button>
                                 </div>
                             </Card.Body>
                         </Card>
                     </Col>
                 </Row>
+
+                {/* Drawer lateral */}
+                {/* Drawer lateral */}
+                <AnimatePresence>
+                    {drawerOpen && (
+                        <>
+                            {/* Overlay */}
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 0.5 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="drawer-overlay"
+                                onClick={() => setDrawerOpen(false)}
+                            />
+
+                            {/* Drawer */}
+                            <motion.div
+                                initial={{ x: "100%" }}
+                                animate={{ x: 0 }}
+                                exit={{ x: "100%" }}
+                                transition={{ duration: 0.45, ease: [0.25, 0.8, 0.25, 1] }}
+                                className="drawer-panel"
+                            >
+                                {/* Info del usuario */}
+                                <div className="drawer-user text-center mb-4">
+                                    <img
+                                        src="https://via.placeholder.com/80"
+                                        alt="avatar"
+                                        className="drawer-avatar mb-2"
+                                    />
+                                    <h5 className="mb-0">{userData.nombre || "Usuario"}</h5>
+                                    <small className="text-muted">{userData.correo || "email@example.com"}</small>
+                                </div>
+
+                                {/* Opciones */}
+                                <div className="drawer-options">
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        className="drawer-option"
+                                        onClick={() => { setDrawerOpen(false); navigate('/profile/edit'); }}
+                                    >
+                                        <i className="bi bi-person-gear me-2"></i> Actualizar Perfil
+                                    </motion.button>
+
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        className="drawer-option"
+                                        onClick={() => { setDrawerOpen(false); navigate('/profile/change-password'); }}
+                                    >
+                                        <i className="bi bi-shield-lock me-2"></i> Cambiar Contraseña
+                                    </motion.button>
+
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        className="drawer-option"
+                                        onClick={() => { setDrawerOpen(false); navigate('/profile/settings');}}
+                                    >
+                                        <i className="bi bi-gear me-2"></i> Preferencias
+                                    </motion.button>
+                                </div>
+
+                                {/* Botón cerrar */}
+                                <Button
+                                    variant="secondary"
+                                    className="w-100 mt-4"
+                                    onClick={() => setDrawerOpen(false)}
+                                >
+                                    Cerrar
+                                </Button>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
+
             </Container>
         </div>
     );
