@@ -1,17 +1,21 @@
 export {
     Microphone as IconMic,
-    Stop as IconStop,
     Cpu as IconCpu,
-    Stethoscope as IconStethoscope,
-    FileText as IconFileText,
-    Waveform as IconAudioLines,
     ClockCounterClockwise as IconHistory,
     UserCircle as IconUser,
 
-    // ---- Íconos del NAVBAR (todos de Phosphor) ----
-    Heart as IconHeart,          // Branding
-    Gauge as IconDashboard,      // "Dashboard"
-    Notebook as IconJournal,     // "Mis Consultas"
-    GearSix as IconGear,         // "Configuración"
-    SignOut as IconLogout,       // "Cerrar sesión"
+    Heart as IconHeart,
+    Gauge as IconDashboard,
+    Notebook as IconJournal,
+    GearSix as IconGear,
+    SignOut as IconLogout,
+
+    MagnifyingGlass as IconSearch,
+    UploadSimple as IconUpload,
+    LinkSimple as IconLink,
+    Waveform as IconDictation,
+    Folder as IconFolder,
+    FolderPlus as IconFolderPlus,
+    Trash as IconTrash,
+    Pencil as IconPencil,
 } from '@phosphor-icons/react';

@@ -28,6 +28,7 @@ import { AuthProvider } from './context/AuthContext';
 import EditProfile from "./pages/EditProfile/EditProfile";
 import ChangePassword from "./pages/ChangePassword/ChangePassword";
 import ProfileSettings from "./pages/ProfileSettings/ProfileSettings";
+import Plan from "./pages/Plan/Plan";
 
 const AppRoutes = () => {
     const location = useLocation();
@@ -77,6 +78,7 @@ const AppRoutes = () => {
                         <Route path="/profile/edit" element={<EditProfile />} />
                         <Route path="/profile/change-password" element={<ChangePassword />} />
                         <Route path="/profile/settings" element={<ProfileSettings />} />
+                        <Route path="/plan" element={<Plan />} />
                     </Route>
                 </Routes>
             </div>

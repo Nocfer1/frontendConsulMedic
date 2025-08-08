@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Button, Alert, Form, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import './Dashboard.css';
-import API_BASE from '../../apiConfig';
-import { motion } from "motion/react"
+import { motion } from 'motion/react';
 import {
-    IconMic, IconStop, IconCpu, IconStethoscope, IconAudioLines, IconFileText, IconHistory
+    IconMic, IconSearch, IconCpu,
+    IconUpload, IconLink, IconDictation,
+    IconFolder, IconFolderPlus, IconTrash, IconPencil, IconHistory
 } from '../../components/Icons';
-
+import API_BASE from '../../apiConfig';
 
 const Dashboard = () => {
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [error,   setError] = useState('');
     const [recordings, setRecordings] = useState([]);
     const [isRecording, setIsRecording] = useState(false);
     const [audioBlob, setAudioBlob] = useState(null);
@@ -23,41 +24,31 @@ const Dashboard = () => {
     const [audioChunks, setAudioChunks] = useState([]);
     const [recordingName, setRecordingName] = useState('');
     const navigate = useNavigate();
+    const [processingSource, setProcessingSource] = useState(null); // 'upload' | 'mic' | null
 
+
+    // ---------- Cargar datos de usuario y grabaciones ----------
     useEffect(() => {
         const fetchUserData = async () => {
             try {
                 const token = localStorage.getItem('token');
-                if (!token) {
-                    navigate('/login');
-                    return;
-                }
+                if (!token) { navigate('/login'); return; }
 
-                const response = await fetch('http://localhost:5000/api/user/profile', {
+                const response = await fetch(`${API_BASE}/user/profile`, {
                     method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
-
-                if (!response.ok) {
-                    throw new Error('No se pudo obtener la información del usuario');
-                }
-
+                if (!response.ok) throw new Error('No se pudo obtener la información del usuario');
                 const data = await response.json();
                 setUserData(data);
 
-                // Cargar grabaciones previas del usuario
-                const recordingsResponse = await fetch('http://localhost:5000/api/recordings', {
+                const recordingsResponse = await fetch(`${API_BASE}/recordings`, {
                     method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
-
                 if (recordingsResponse.ok) {
                     const recordingsData = await recordingsResponse.json();
-                    setRecordings(recordingsData);
+                    setRecordings(Array.isArray(recordingsData) ? recordingsData : []);
                 }
             } catch (err) {
                 console.error('Error:', err);
@@ -70,16 +61,120 @@ const Dashboard = () => {
         fetchUserData();
     }, [navigate]);
 
+    // ---------- Sidebar (carpetas) ----------
+    const [folders, setFolders] = useState([
+        { id: 'inbox',   name: 'General'  },
+        { id: 'reports', name: 'Informes' },
+    ]);
+    const [selectedFolder, setSelectedFolder] = useState('inbox');
+    const fileInputRef = useRef(null);
+
+    const handleAddFolder = () => {
+        const name = prompt('Nombre de la carpeta:');
+        if (!name) return;
+        const id = `${Date.now()}`;
+        setFolders(prev => [...prev, { id, name }]);
+        setSelectedFolder(id);
+    };
+    const handleRenameFolder = (id) => {
+        const name = prompt('Nuevo nombre:');
+        if (!name) return;
+        setFolders(prev => prev.map(f => f.id === id ? ({ ...f, name }) : f));
+    };
+    const handleDeleteFolder = (id) => {
+        if (!confirm('¿Eliminar carpeta?')) return;
+        setFolders(prev => prev.filter(f => f.id !== id));
+        if (selectedFolder === id) setSelectedFolder('inbox');
+    };
+
+    // ---------- Subir archivo (mismo pipeline que grabación) ----------
+    const handleClickUpload = () => fileInputRef.current?.click();
+
+    // 2. Esperar hasta que el resumen esté listo (polling)
+    const waitForFinalize = async (filename, retries = 10, delay = 3000) => {
+        for (let i = 0; i < retries; i++) {
+            const res = await fetch(`${API_BASE}/recordings/finalize`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(filename)
+            });
+
+            if (res.ok) {
+                const result = await res.json();
+                return result;
+            }
+
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+        throw new Error('❌ El resumen no estuvo listo a tiempo.');
+    };
+
+    const processUploadedFile = async (file) => {
+        setProcessingSource('upload');
+        setProcessingAudio(true);
+        setError('');
+        setTranscription('');
+        setSummary('');
+        try {
+            const formData = new FormData();
+            formData.append('audioFile', file);
+
+            const uploadResponse = await fetch(`${API_BASE}/recordings/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            if (!uploadResponse.ok) throw new Error('Error al subir el archivo');
+
+            const uploadData = await uploadResponse.json();
+            const uploadedFileName = decodeURIComponent(uploadData.uri.split('/').pop());
+            const summaryFileName  = `resumen-${uploadedFileName}.txt`;
+
+            const resultData = await waitForFinalize(summaryFileName);
+
+            setSummary(resultData.summary || 'No se pudo obtener el resumen.');
+            setTranscription('Transcripción disponible en el archivo de GCS.');
+            setRecordingName(file.name.replace(/\.[^/.]+$/, ''));
+
+            const token = localStorage.getItem('token');
+            const recordingsResponse = await fetch(`${API_BASE}/recordings`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (recordingsResponse.ok) setRecordings(await recordingsResponse.json());
+        } catch (err) {
+            console.error('Error:', err);
+            setError('Error al procesar el archivo. Intenta nuevamente.');
+        } finally {
+            setProcessingAudio(false);
+            setProcessingSource(null);
+        }
+    };
+
+    const handleUploadFileChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        await processUploadedFile(file);
+        e.target.value = ''; // permitir subir el mismo archivo de nuevo
+    };
+
+    const handleImportUrl = async () => {
+        const url = prompt('Pega la URL del audio/archivo:');
+        if (!url) return;
+        // TODO: implementar importación por URL en el backend
+        console.log('URL a importar:', url);
+    };
+
+    // ---------- Grabación (micrófono) ----------
     const handleStartRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const recorder = new MediaRecorder(stream);
             const chunks = [];
 
-            recorder.ondataavailable = e => {
-                chunks.push(e.data);
-            };
-
+            recorder.ondataavailable = e => { chunks.push(e.data); };
             recorder.onstop = () => {
                 const blob = new Blob(chunks, { type: 'audio/webm' });
                 setAudioBlob(blob);
@@ -104,12 +199,19 @@ const Dashboard = () => {
         }
     };
 
-    const handleProcessAudio = async () => {
-        if (!audioBlob) {
-            setError('Por favor grabe audio');
-            return;
+    // Nombre sugerido cuando termina de grabar y hay blob
+    useEffect(() => {
+        if (audioBlob && !recordingName) {
+            const d = new Date();
+            const stamp = d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+            setRecordingName(`Consulta ${stamp}`);
         }
+    }, [audioBlob, recordingName]);
 
+    const handleProcessAudio = async () => {
+        if (!audioBlob) { setError('Por favor grabe audio'); return; }
+
+        setProcessingSource('mic');
         setProcessingAudio(true);
         setError('');
         setTranscription('');
@@ -119,64 +221,27 @@ const Dashboard = () => {
             const formData = new FormData();
             formData.append('audioFile', audioBlob);
 
-            // 1. Subir audio
             const uploadResponse = await fetch(`${API_BASE}/recordings/upload`, {
                 method: 'POST',
                 body: formData
             });
-
-            if (!uploadResponse.ok) {
-                throw new Error('Error al subir el audio');
-            }
+            if (!uploadResponse.ok) throw new Error('Error al subir el audio');
 
             const uploadData = await uploadResponse.json();
             const uploadedFileName = uploadData.uri.split('/').pop();
-            const summaryFileName = `resumen-${uploadedFileName}.txt`;
+            const summaryFileName  = `resumen-${uploadedFileName}.txt`;
 
-            // 2. Esperar hasta que el resumen esté listo (polling)
-            const waitForFinalize = async (filename, retries = 10, delay = 3000) => {
-                for (let i = 0; i < retries; i++) {
-                    const res = await fetch(`${API_BASE}/recordings/finalize`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(filename)
-                    });
-
-                    if (res.ok) {
-                        const result = await res.json();
-                        return result;
-                    }
-
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                }
-
-                throw new Error('❌ El resumen no estuvo listo a tiempo.');
-            };
-
-            // 3. Ejecutar finalize con espera
             const resultData = await waitForFinalize(summaryFileName);
-            console.log('✅ Grabación finalizada:', resultData.message);
 
-            // Mostrar automáticamente el resumen
             setSummary(resultData.summary || 'No se pudo obtener el resumen.');
-            setTranscription("Transcripción disponible en el archivo de GCS."); // opcional
+            setTranscription('Transcripción disponible en el archivo de GCS.');
 
-
-            // 4. Refrescar la lista de grabaciones
             const token = localStorage.getItem('token');
             const recordingsResponse = await fetch(`${API_BASE}/recordings`, {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
-
-            if (recordingsResponse.ok) {
-                const recordingsData = await recordingsResponse.json();
-                setRecordings(recordingsData);
-            }
+            if (recordingsResponse.ok) setRecordings(await recordingsResponse.json());
 
             setAudioBlob(null);
             setRecordingName('');
@@ -185,22 +250,18 @@ const Dashboard = () => {
             setError('Error al procesar el audio. Intenta nuevamente.');
         } finally {
             setProcessingAudio(false);
+            setProcessingSource(null);
         }
     };
 
     const handleViewRecording = async (recordingId) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:5000/api/recordings/${recordingId}`, {
+            const response = await fetch(`${API_BASE}/recordings/${recordingId}`, {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
-
-            if (!response.ok) {
-                throw new Error('No se pudo obtener la grabación');
-            }
+            if (!response.ok) throw new Error('No se pudo obtener la grabación');
 
             const data = await response.json();
             setTranscription(data.transcription);
@@ -219,70 +280,134 @@ const Dashboard = () => {
         );
     }
 
-    return (
-        <div className="dashboard-page">
-            <Container>
-                <h1 className="mb-4">Dashboard</h1>
-                {error && <Alert variant="danger">{error}</Alert>}
+    // Oculta el empty state si estás grabando o procesando
+    const showEmptyState = !transcription && !summary && recordings.length === 0 && !audioBlob && !isRecording && !processingAudio;
 
-                {/* Panel de perfil */}
-                {userData && (
-                    <Card className="mb-4 profile-card">
-                        <Card.Body className="d-flex align-items-center">
-                            <img
-                                src="/avatar.png"
-                                alt="Foto"
-                                className="rounded-circle me-3"
-                                width="60"
-                                height="60"
-                            />
-                            <div>
-                                <h5>{userData.nombre}</h5>
-                                <p className="text-muted">{userData.especialidad}</p>
-                                <small>Total consultas: {recordings.length}</small>
+    const planName = userData?.planName || userData?.plan || userData?.subscription?.plan || 'Gratis';
+
+    return (
+        <div className="dashboard-shell">
+            {/* Sidebar */}
+            <aside className="sidebar">
+                <div className="sidebar-header">
+                    <h6>Carpetas</h6>
+                    <Button variant="link" className="p-0" onClick={handleAddFolder} title="Nueva carpeta">
+                        <IconFolderPlus size={18} />
+                    </Button>
+                </div>
+
+                <div className="folder-list">
+                    {folders.map(f => (
+                        <div
+                            key={f.id}
+                            className={`folder-item ${selectedFolder === f.id ? 'active' : ''}`}
+                            onClick={() => setSelectedFolder(f.id)}
+                        >
+                            <div className="d-flex align-items-center gap-2">
+                                <IconFolder size={18} />
+                                <span>{f.name}</span>
                             </div>
-                        </Card.Body>
-                    </Card>
+                            <div className="folder-actions">
+                                <Button variant="link" className="p-0 me-2" onClick={(e)=>{e.stopPropagation();handleRenameFolder(f.id);}} title="Renombrar">
+                                    <IconPencil size={16} />
+                                </Button>
+                                <Button variant="link" className="p-0" onClick={(e)=>{e.stopPropagation();handleDeleteFolder(f.id);}} title="Eliminar">
+                                    <IconTrash size={16} />
+                                </Button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="sidebar-section mt-4">
+                    <h6>Recientes</h6>
+                    <div className="recent-list">
+                        {recordings.slice(0,5).map(r => (
+                            <button
+                                key={r._id}
+                                className="recent-item"
+                                onClick={() => handleViewRecording(r._id)}
+                                title={r.name}
+                            >
+                                <IconHistory size={16} />
+                                <span className="text-truncate">{r.name}</span>
+                            </button>
+                        ))}
+                        {recordings.length === 0 && <small className="text-muted">Sin registros</small>}
+                    </div>
+                </div>
+            </aside>
+
+            {/* Main */}
+            <main className="main">
+                {/* Header con buscador */}
+                <div className="main-header">
+                    <h1>Dashboard</h1>
+                    <div className="searchbar">
+                        <IconSearch size={18} />
+                        <input className="form-control" placeholder="Buscar por nombre, fecha o estado…" />
+                    </div>
+                </div>
+
+                {error && <Alert variant="danger" className="mb-3">{error}</Alert>}
+
+                {/* Acciones rápidas */}
+                <div className="quick-actions">
+                    <button className="action-card action-upload" onClick={handleClickUpload} disabled={processingAudio}>
+                        <IconUpload size={22} />
+                        <span>{processingAudio ? 'Procesando…' : 'Subir archivo'}</span>
+                        <input
+                            ref={fileInputRef}
+                            onChange={handleUploadFileChange}
+                            type="file"
+                            accept="audio/*,video/*,.wav,.mp3,.m4a,.webm"
+                            hidden
+                        />
+                    </button>
+
+                    <button className="action-card action-url" onClick={handleImportUrl} disabled={processingAudio}>
+                        <IconLink size={22} />
+                        <span>Importar URL</span>
+                    </button>
+
+                    <button
+                        className="action-card action-mic"
+                        onClick={isRecording ? handleStopRecording : handleStartRecording}
+                        disabled={processingAudio}
+                        title={isRecording ? 'Detener grabación' : 'Grabar micrófono'}
+                    >
+                        <IconMic size={22} />
+                        <span>{isRecording ? 'Detener grabación' : 'Grabar micrófono'}</span>
+                    </button>
+
+                    <button
+                        className="action-card action-dictation"
+                        onClick={isRecording ? handleStopRecording : handleStartRecording}
+                        disabled={processingAudio}
+                        title={isRecording ? 'Detener grabación' : 'Nuevo dictado'}
+                    >
+                        <IconDictation size={22} />
+                        <span>{isRecording ? 'Detener grabación' : 'Nuevo dictado'}</span>
+                    </button>
+                </div>
+
+                {/* Estado vacío centrado */}
+                {showEmptyState && (
+                    <div className="empty-state">
+                        <div className="empty-icon">↑</div>
+                        <h4>Agrega tu primera consulta</h4>
+                        <p>Sube un archivo, importa una URL o graba audio. Crearemos transcripciones y resúmenes para ti.</p>
+                        <Button variant="primary" onClick={handleClickUpload} disabled={processingAudio}>
+                            Explorar opciones
+                        </Button>
+                    </div>
                 )}
 
-                {/* KPIs rápidos */}
-                <Row className="mb-4">
-                    <Col md={4}>
-                        <Card className="kpi-card">
-                            <h6>Consultas este mes</h6>
-                            <h3>{recordings.length}</h3>
-                        </Card>
-                    </Col>
-                    <Col md={4}>
-                        <Card className="kpi-card">
-                            <h6>Última consulta</h6>
-                            <h3>
-                                {recordings.length > 0
-                                    ? new Date(recordings[0].createdAt).toLocaleDateString()
-                                    : "-"}
-                            </h3>
-                        </Card>
-                    </Col>
-                    <Col md={4}>
-                        <Card className="kpi-card">
-                            <h6>En proceso</h6>
-                            <h3>
-                                {recordings.filter(r => !r.summary).length}
-                            </h3>
-                        </Card>
-                    </Col>
-                </Row>
-
-                <Row>
-                    <Col md={8}>
-                        {/* Nueva consulta médica */}
+                {/* Bloque de “Nueva Consulta” + resultados (cuando haya actividad) */}
+                {!showEmptyState && (
+                    <>
                         <Card className="mb-4">
-                            <Card.Header>
-                                <h3 className="d-flex align-items-center">
-                                    <IconStethoscope className="icon me-2" />
-                                    Nueva Consulta Médica
-                                </h3>
-                            </Card.Header>
+                            <Card.Header><h3>Nueva Consulta Médica</h3></Card.Header>
                             <Card.Body>
                                 <Form.Group className="mb-3">
                                     <Form.Label>Nombre de la consulta</Form.Label>
@@ -292,69 +417,68 @@ const Dashboard = () => {
                                         onChange={(e) => setRecordingName(e.target.value)}
                                         placeholder="Ej: Consulta Paciente Juan Pérez - 25/07/2025"
                                         required
+                                        disabled={processingSource === 'upload' && processingAudio}
                                     />
                                 </Form.Group>
 
                                 <div className="recording-controls mb-4">
-                                    {!isRecording ? (
-                                        <motion.button
-                                            className="btn btn-primary"
-                                            onClick={handleStartRecording}
-                                            disabled={processingAudio}
-                                            whileHover={{ scale : 1.05}}
-                                            whileTap={{ scale: 0.95 }}
-                                            transition={{ type : "spring", stiffness: 300}}
-                                        >
-                                            <span className="me-2"><IconMic className="icon" /></span>
-                                            Iniciar Grabación
-                                        </motion.button>
+                                    {processingSource === 'upload' && processingAudio ? (
+                                        <Alert variant="info" className="mb-0 d-flex align-items-center">
+                                            <Spinner animation="border" size="sm" className="me-2" />
+                                            Analizando archivo subido… Esto puede tardar unos minutos.
+                                        </Alert>
                                     ) : (
-                                        <motion.button
-                                            className="btn btn-danger recording-btn"
-                                            onClick={handleStopRecording}
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            transition={{ type: "spring", stiffness: 300 }}
-                                        >
-                                            <span className="me-2"><IconStop className="icon" /></span>
-                                            Detener Grabación
-                                        </motion.button>
-                                    )}
-
-                                    {audioBlob && !isRecording && (
-                                        <motion.button
-                                            className="btn btn-success ms-3"
-                                            onClick={handleProcessAudio}
-                                            disabled={processingAudio || !recordingName}
-                                            whileHover={{ scale: 1.05 }}
-                                            whileTap={{ scale: 0.95 }}
-                                            transition={{ type: "spring", stiffness: 300 }}
-                                        >
-                                            {processingAudio ? (
-                                                <>
-                                                    <Spinner animation="border" size="sm" className="me-2" />
-                                                    Procesando...
-                                                </>
+                                        <>
+                                            {!isRecording ? (
+                                                <motion.button
+                                                    className="btn btn-primary"
+                                                    onClick={handleStartRecording}
+                                                    disabled={processingAudio}
+                                                    whileHover={{ scale : 1.05}}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    transition={{ type : 'spring', stiffness: 300}}
+                                                >
+                                                    <span className="me-2"><IconMic /></span>
+                                                    Iniciar grabación
+                                                </motion.button>
                                             ) : (
-                                                <>
-                                                    <span className="me-2"><IconCpu className="icon" /></span>
-                                                    Procesar Audio
-                                                </>
+                                                <motion.button
+                                                    className="btn btn-danger recording-btn"
+                                                    onClick={handleStopRecording}
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    transition={{ type: 'spring', stiffness: 300 }}
+                                                >
+                                                    Detener grabación
+                                                </motion.button>
                                             )}
-                                        </motion.button>
+
+                                            {audioBlob && !isRecording && (
+                                                <motion.button
+                                                    className="btn btn-success ms-3"
+                                                    onClick={handleProcessAudio}
+                                                    disabled={processingAudio || !recordingName}
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    transition={{ type: 'spring', stiffness: 300 }}
+                                                >
+                                                    {processingAudio ? (
+                                                        <>
+                                                            <Spinner animation="border" size="sm" className="me-2" />
+                                                            Procesando…
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <span className="me-2"><IconCpu /></span>
+                                                            Procesar audio
+                                                        </>
+                                                    )}
+                                                </motion.button>
+                                            )}
+                                        </>
                                     )}
                                 </div>
 
-                                {audioBlob && !isRecording && (
-                                    <div className="audio-preview mb-3">
-                                        <h5>Vista previa del audio:</h5>
-                                        <audio
-                                            controls
-                                            src={URL.createObjectURL(audioBlob)}
-                                            className="w-100"
-                                        />
-                                    </div>
-                                )}
                             </Card.Body>
                         </Card>
 
@@ -362,12 +486,7 @@ const Dashboard = () => {
                             <Row>
                                 <Col md={12}>
                                     <Card className="mb-4">
-                                        <Card.Header>
-                                            <h3 className="d-flex align-items-center">
-                                                <IconAudioLines className="icon me-2" />
-                                                Transcripción
-                                            </h3>
-                                        </Card.Header>
+                                        <Card.Header><h3>Transcripción</h3></Card.Header>
                                         <Card.Body>
                                             <div className="transcription-content">
                                                 {transcription || 'No hay transcripción disponible'}
@@ -377,12 +496,7 @@ const Dashboard = () => {
                                 </Col>
                                 <Col md={12}>
                                     <Card className="mb-4">
-                                        <Card.Header>
-                                            <h3 className="d-flex align-items-center">
-                                                <IconFileText className="icon me-2" />
-                                                Resumen de la Consulta
-                                            </h3>
-                                        </Card.Header>
+                                        <Card.Header><h3>Resumen de la consulta</h3></Card.Header>
                                         <Card.Body>
                                             <div className="summary-content">
                                                 {summary || 'No hay resumen disponible'}
@@ -392,57 +506,11 @@ const Dashboard = () => {
                                 </Col>
                             </Row>
                         )}
-                    </Col>
-
-                    <Col md={4}>
-                        <Card>
-                            <Card.Header>
-                                <h3 className="d-flex align-items-center">
-                                    <IconHistory className="icon me-2" />
-                                    Consultas Previas
-                                </h3>
-                            </Card.Header>
-                            <Card.Body>
-                                {recordings.length === 0 ? (
-                                    <div className="text-center text-muted">
-                                        <img
-                                            src="/empty-state.svg"
-                                            alt="Sin datos"
-                                            width="120"
-                                            className="mb-3"
-                                        />
-                                        <p>No hay consultas previas</p>
-                                    </div>
-                                ) : (
-                                    <div className="recordings-list">
-                                        {recordings.map(recording => (
-                                            <div key={recording._id} className="recording-item">
-                                                <div className="recording-info">
-                                                    <h5>{recording.name}</h5>
-                                                    <p className="text-muted">
-                                                        {new Date(recording.createdAt).toLocaleDateString()}
-                                                    </p>
-                                                </div>
-                                                <Button
-                                                    variant="outline-primary"
-                                                    size="sm"
-                                                    onClick={() => handleViewRecording(recording._id)}
-                                                >
-                                                    Ver
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </Card.Body>
-                        </Card>
-                    </Col>
-                </Row>
-            </Container>
+                    </>
+                )}
+            </main>
         </div>
     );
-
-
 };
 
 export default Dashboard;

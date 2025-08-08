@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navbar, Container, Nav, NavDropdown } from 'react-bootstrap';
+import { Navbar, Container, Nav, NavDropdown, Badge } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { IconHeart, IconDashboard, IconJournal, IconUser, IconGear, IconLogout } from '../../components/Icons';
@@ -14,42 +14,59 @@ const DashboardNavbar = () => {
         navigate('/');
     };
 
+    // Tomamos el plan del usuario; ajusta estos campos si tu objeto difiere
+    const planName = currentUser?.planName || currentUser?.plan || 'Gratis';
+
     return (
         <Navbar bg="primary" variant="dark" expand="lg" className="dashboard-navbar">
             <Container>
-                <Navbar.Brand as={Link} to="/dashboard">
-                    <span className="me-2"><IconHeart /></span>
-                    ConsulMedic
+                <Navbar.Brand as={Link} to="/dashboard" className="navitem-icon">
+                    <IconHeart size={22} weight="fill" />
+                    <span>ConsulMedic</span>
                 </Navbar.Brand>
+
                 <Navbar.Toggle aria-controls="navbar-nav" />
-                <Navbar.Collapse id="navbar-nav">
-                    <Nav className="me-auto">
-                        <Nav.Link as={Link} to="/dashboard">
-                            <span className="me-1"><IconDashboard /></span> Dashboard
+                <Navbar.Collapse id="navbar-nav" className="align-items-center">
+                    {/* NAV CENTRAL 100% CENTRADO EN ESCRITORIO */}
+                    <Nav className="center align-items-center">
+                        <Nav.Link as={Link} to="/dashboard" className="navitem-icon">
+                            <IconDashboard size={20} />
+                            <span>Dashboard</span>
                         </Nav.Link>
-                        <Nav.Link as={Link} to="/consultations">
-                            <span className="me-1"><IconJournal /></span> Mis Consultas
+
+                        <Nav.Link as={Link} to="/consultations" className="navitem-icon">
+                            <IconJournal size={20} />
+                            <span>Mis Consultas</span>
+                        </Nav.Link>
+
+                        {/* Mi Plan, al lado de Mis Consultas */}
+                        <Nav.Link as={Link} to="/plan" className="navitem-icon">
+                            <span>Mi plan</span>
+                            <Badge bg="light" text="dark" className="ms-2">{planName}</Badge>
                         </Nav.Link>
                     </Nav>
-                    <Nav>
+
+                    {/* NAV DERECHA (usuario) */}
+                    <Nav className="ms-lg-auto align-items-center">
                         {currentUser && (
-                            <NavDropdown 
-                                title={
-                                    <span>
-                                        <span className="me-1"><IconUser /></span>
-                                        {currentUser.nombre || 'Usuario'}
-                                    </span>
-                                } 
+                            <NavDropdown
+                                align="end"
                                 id="user-dropdown"
+                                title={
+                                    <span className="navitem-icon">
+                    <IconUser size={20} />
+                    <span>{currentUser.nombre || 'Usuario'}</span>
+                  </span>
+                                }
                             >
-                                <NavDropdown.Item as={Link} to="/profile">
-                                    <span className="me-2"><IconGear /></span>
-                                    Configuración
+                                <NavDropdown.Item as={Link} to="/profile" className="navitem-icon">
+                                    <IconGear size={18} />
+                                    <span>Configuración</span>
                                 </NavDropdown.Item>
                                 <NavDropdown.Divider />
-                                <NavDropdown.Item onClick={handleLogout}>
-                                    <span className="me-2"><IconLogout /></span>
-                                    Cerrar Sesión
+                                <NavDropdown.Item onClick={handleLogout} className="navitem-icon">
+                                    <IconLogout size={18} />
+                                    <span>Cerrar sesión</span>
                                 </NavDropdown.Item>
                             </NavDropdown>
                         )}
