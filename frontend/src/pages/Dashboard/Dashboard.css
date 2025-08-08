@@ -1,103 +1,129 @@
-.dashboard-page {
-    padding: 2rem 0;
-    min-height: 80vh;
+/* ====== Aspecto general ====== */
+.dashboard-page h1 {
+    font-weight: 700;
+    letter-spacing: .2px;
 }
 
-.recording-controls {
-    display: flex;
-    align-items: center;
-    margin-bottom: 1.5rem;
+.dashboard-page .card {
+    border: 0;
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.06);
 }
 
-.recording-btn {
-    position: relative;
+/* Header de todas las cards (puedes comentar si no lo quieres global) */
+.dashboard-page .card-header {
+    background: linear-gradient(90deg, #1976d2, #42a5f5);
+    color: #fff;
+    font-weight: 600;
+    border: 0;
+    border-top-left-radius: 14px !important;
+    border-top-right-radius: 14px !important;
 }
 
-.recording-btn::before {
-    content: '';
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: red;
-    animation: pulse 1.5s infinite;
+/* ====== Panel de perfil ====== */
+.profile-card .card-body {
+    padding: 1rem 1.25rem;
+}
+.profile-card img {
+    border: 2px solid #1976d2;
+    box-shadow: 0 2px 8px rgba(25,118,210,.25);
 }
 
-@keyframes pulse {
-    0% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.5;
-    }
-    100% {
-        opacity: 1;
-    }
+/* ====== KPIs ====== */
+.kpi-card {
+    padding: 1rem 1.25rem;
+    border-radius: 14px;
+    background: #f1f7ff;
+    text-align: center;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+.kpi-card h6 {
+    margin: 0;
+    font-weight: 600;
+    color: #1e4976;
+    letter-spacing: .3px;
+}
+.kpi-card h3 {
+    margin: .25rem 0 0;
+    font-weight: 800;
+}
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(0,0,0,.08);
 }
 
+/* ====== Lista de consultas previas ====== */
 .recordings-list {
     max-height: 600px;
     overflow-y: auto;
+    padding-right: 4px; /* evita que tape el borde el scroll */
 }
-
 .recording-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem;
-    border-bottom: 1px solid #e0e0e0;
+    gap: .75rem;
+    padding: .85rem .25rem;
+    border-bottom: 1px solid #edf2f7;
+    transition: background-color .12s ease;
 }
-
-.recording-item:last-child {
-    border-bottom: none;
+.recording-item:hover {
+    background-color: #f8fbff;
 }
-
-.recording-info {
-    flex: 1;
-}
-
 .recording-info h5 {
-    margin-bottom: 0.25rem;
     font-size: 1rem;
+    margin: 0 0 .15rem;
 }
-
 .recording-info p {
-    margin-bottom: 0;
-    font-size: 0.8rem;
+    font-size: .8rem;
+    color: #6b7280;
+    margin: 0;
 }
 
+/* ====== Contenido de transcripción y resumen ====== */
 .transcription-content,
 .summary-content {
-    padding: 1rem;
-    background-color: #f8f9fa;
-    border-radius: 0.25rem;
+    padding: 1rem 1.1rem;
+    background-color: #ffffff;
+    border: 1px solid #eef2f7;
+    border-radius: 10px;
     min-height: 150px;
     white-space: pre-line;
-    font-size: 0.9rem;
-    line-height: 1.5;
+    font-size: .95rem;
+    line-height: 1.6;
 }
 
+/* ====== Vista previa de audio ====== */
 .audio-preview {
     padding: 1rem;
-    background-color: #f8f9fa;
-    border-radius: 0.25rem;
+    background-color: #ffffff;
+    border: 1px solid #eef2f7;
+    border-radius: 10px;
 }
 
-/* Estilos responsivos */
+/* ====== Estado vacío (Consultas Previas) ====== */
+.text-center.text-muted img {
+    opacity: .9;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,.06));
+}
+.text-center.text-muted p {
+    margin: 0;
+}
+
+/* ====== Botones de grabación (ya tienes el pulse, aquí pulimos) ====== */
+.recording-controls .btn {
+    min-width: 180px;
+}
+.recording-btn {
+    box-shadow: 0 6px 16px rgba(244, 67, 54, .25);
+}
+
+/* ====== Responsivo ====== */
 @media (max-width: 768px) {
-    .recording-controls {
-        flex-direction: column;
-        align-items: flex-start;
+    .kpi-card {
+        margin-bottom: .75rem;
     }
-
-    .recording-controls button {
-        margin-bottom: 0.5rem;
+    .recording-controls .btn {
         width: 100%;
-    }
-
-    .recording-controls button.ms-3 {
-        margin-left: 0 !important;
     }
 }

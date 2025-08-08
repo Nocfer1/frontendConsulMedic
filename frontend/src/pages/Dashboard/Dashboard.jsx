@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Alert, Form, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { IconMic, IconStop, IconCpu } from '../../components/Icons';
 import './Dashboard.css';
 import API_BASE from '../../apiConfig';
 import { motion } from "motion/react"
+import {
+    IconMic, IconStop, IconCpu, IconStethoscope, IconAudioLines, IconFileText, IconHistory
+} from '../../components/Icons';
+
 
 const Dashboard = () => {
     const [userData, setUserData] = useState(null);
@@ -185,8 +188,6 @@ const Dashboard = () => {
         }
     };
 
-
-
     const handleViewRecording = async (recordingId) => {
         try {
             const token = localStorage.getItem('token');
@@ -224,11 +225,63 @@ const Dashboard = () => {
                 <h1 className="mb-4">Dashboard</h1>
                 {error && <Alert variant="danger">{error}</Alert>}
 
+                {/* Panel de perfil */}
+                {userData && (
+                    <Card className="mb-4 profile-card">
+                        <Card.Body className="d-flex align-items-center">
+                            <img
+                                src="/avatar.png"
+                                alt="Foto"
+                                className="rounded-circle me-3"
+                                width="60"
+                                height="60"
+                            />
+                            <div>
+                                <h5>{userData.nombre}</h5>
+                                <p className="text-muted">{userData.especialidad}</p>
+                                <small>Total consultas: {recordings.length}</small>
+                            </div>
+                        </Card.Body>
+                    </Card>
+                )}
+
+                {/* KPIs rápidos */}
+                <Row className="mb-4">
+                    <Col md={4}>
+                        <Card className="kpi-card">
+                            <h6>Consultas este mes</h6>
+                            <h3>{recordings.length}</h3>
+                        </Card>
+                    </Col>
+                    <Col md={4}>
+                        <Card className="kpi-card">
+                            <h6>Última consulta</h6>
+                            <h3>
+                                {recordings.length > 0
+                                    ? new Date(recordings[0].createdAt).toLocaleDateString()
+                                    : "-"}
+                            </h3>
+                        </Card>
+                    </Col>
+                    <Col md={4}>
+                        <Card className="kpi-card">
+                            <h6>En proceso</h6>
+                            <h3>
+                                {recordings.filter(r => !r.summary).length}
+                            </h3>
+                        </Card>
+                    </Col>
+                </Row>
+
                 <Row>
                     <Col md={8}>
+                        {/* Nueva consulta médica */}
                         <Card className="mb-4">
                             <Card.Header>
-                                <h3>Nueva Consulta Médica</h3>
+                                <h3 className="d-flex align-items-center">
+                                    <IconStethoscope className="icon me-2" />
+                                    Nueva Consulta Médica
+                                </h3>
                             </Card.Header>
                             <Card.Body>
                                 <Form.Group className="mb-3">
@@ -252,7 +305,7 @@ const Dashboard = () => {
                                             whileTap={{ scale: 0.95 }}
                                             transition={{ type : "spring", stiffness: 300}}
                                         >
-                                            <span className="me-2"><IconMic /></span>
+                                            <span className="me-2"><IconMic className="icon" /></span>
                                             Iniciar Grabación
                                         </motion.button>
                                     ) : (
@@ -263,7 +316,7 @@ const Dashboard = () => {
                                             whileTap={{ scale: 0.95 }}
                                             transition={{ type: "spring", stiffness: 300 }}
                                         >
-                                            <span className="me-2"><IconStop /></span>
+                                            <span className="me-2"><IconStop className="icon" /></span>
                                             Detener Grabación
                                         </motion.button>
                                     )}
@@ -284,7 +337,7 @@ const Dashboard = () => {
                                                 </>
                                             ) : (
                                                 <>
-                                                    <span className="me-2"><IconCpu /></span>
+                                                    <span className="me-2"><IconCpu className="icon" /></span>
                                                     Procesar Audio
                                                 </>
                                             )}
@@ -310,7 +363,10 @@ const Dashboard = () => {
                                 <Col md={12}>
                                     <Card className="mb-4">
                                         <Card.Header>
-                                            <h3>Transcripción</h3>
+                                            <h3 className="d-flex align-items-center">
+                                                <IconAudioLines className="icon me-2" />
+                                                Transcripción
+                                            </h3>
                                         </Card.Header>
                                         <Card.Body>
                                             <div className="transcription-content">
@@ -322,7 +378,10 @@ const Dashboard = () => {
                                 <Col md={12}>
                                     <Card className="mb-4">
                                         <Card.Header>
-                                            <h3>Resumen de la Consulta</h3>
+                                            <h3 className="d-flex align-items-center">
+                                                <IconFileText className="icon me-2" />
+                                                Resumen de la Consulta
+                                            </h3>
                                         </Card.Header>
                                         <Card.Body>
                                             <div className="summary-content">
@@ -338,11 +397,22 @@ const Dashboard = () => {
                     <Col md={4}>
                         <Card>
                             <Card.Header>
-                                <h3>Consultas Previas</h3>
+                                <h3 className="d-flex align-items-center">
+                                    <IconHistory className="icon me-2" />
+                                    Consultas Previas
+                                </h3>
                             </Card.Header>
                             <Card.Body>
                                 {recordings.length === 0 ? (
-                                    <p>No hay consultas previas</p>
+                                    <div className="text-center text-muted">
+                                        <img
+                                            src="/empty-state.svg"
+                                            alt="Sin datos"
+                                            width="120"
+                                            className="mb-3"
+                                        />
+                                        <p>No hay consultas previas</p>
+                                    </div>
                                 ) : (
                                     <div className="recordings-list">
                                         {recordings.map(recording => (
@@ -371,6 +441,8 @@ const Dashboard = () => {
             </Container>
         </div>
     );
+
+
 };
 
 export default Dashboard;
