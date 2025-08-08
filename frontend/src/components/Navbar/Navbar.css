@@ -68,3 +68,9 @@
         padding: 1rem 0;
     }
 }
+/* Navbar: tamaño visual uniforme para íconos */
+.dashboard-navbar .icon,
+.dashboard-navbar svg {
+    width: 18px;
+    height: 18px;
+}
