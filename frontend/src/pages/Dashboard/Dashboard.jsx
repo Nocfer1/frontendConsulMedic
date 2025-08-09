@@ -24,6 +24,7 @@ const Dashboard = () => {
     const [audioChunks, setAudioChunks] = useState([]);
     const [recordingName, setRecordingName] = useState('');
     const navigate = useNavigate();
+    const [lastResultSource, setLastResultSource] = useState(null); // 'upload' | 'mic' | null
     const [processingSource, setProcessingSource] = useState(null); // 'upload' | 'mic' | null
 
 
@@ -87,7 +88,7 @@ const Dashboard = () => {
         if (selectedFolder === id) setSelectedFolder('inbox');
     };
 
-    // ---------- Subir archivo (mismo pipeline que grabación) ----------
+    // Subir archivo (mismo pipeline que grabación)
     const handleClickUpload = () => fileInputRef.current?.click();
 
     // 2. Esperar hasta que el resumen esté listo (polling)
@@ -109,7 +110,7 @@ const Dashboard = () => {
             await new Promise(resolve => setTimeout(resolve, delay));
         }
 
-        throw new Error('❌ El resumen no estuvo listo a tiempo.');
+        throw new Error('El resumen no estuvo listo a tiempo.');
     };
 
     const processUploadedFile = async (file) => {
@@ -135,8 +136,8 @@ const Dashboard = () => {
             const resultData = await waitForFinalize(summaryFileName);
 
             setSummary(resultData.summary || 'No se pudo obtener el resumen.');
-            setTranscription('Transcripción disponible en el archivo de GCS.');
-            setRecordingName(file.name.replace(/\.[^/.]+$/, ''));
+            setRecordingName('');           // el nombre lo pone el doctor, no el archivo
+            setLastResultSource('upload');  // para que NO aparezca el menú de grabación
 
             const token = localStorage.getItem('token');
             const recordingsResponse = await fetch(`${API_BASE}/recordings`, {
@@ -170,6 +171,11 @@ const Dashboard = () => {
     // ---------- Grabación (micrófono) ----------
     const handleStartRecording = async () => {
         try {
+            setLastResultSource('mic');
+            setProcessingSource('mic');
+            setTranscription('');
+            setSummary('');
+
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const recorder = new MediaRecorder(stream);
             const chunks = [];
@@ -234,8 +240,6 @@ const Dashboard = () => {
             const resultData = await waitForFinalize(summaryFileName);
 
             setSummary(resultData.summary || 'No se pudo obtener el resumen.');
-            setTranscription('Transcripción disponible en el archivo de GCS.');
-
             const token = localStorage.getItem('token');
             const recordingsResponse = await fetch(`${API_BASE}/recordings`, {
                 method: 'GET',
@@ -272,6 +276,33 @@ const Dashboard = () => {
         }
     };
 
+    // limpiar la vista de resultados/estados previos
+    const resetConsultView = () => {
+        setTranscription('');
+        setSummary('');
+        setAudioBlob(null);
+        setIsRecording(false);
+        setProcessingAudio(false);
+        setError && setError('');
+    };
+
+    // Al iniciar el flujo de micrófono desde el botón superior
+    const startMicFlow = () => {
+        if (isRecording) handleStopRecording(); // por si quedó algo activo
+
+        // limpiar restos de un flujo anterior (subida o mic)
+        setTranscription('');
+        setSummary('');
+        setAudioBlob(null);
+        setAudioChunks([]);
+        setIsRecording(false);
+        setProcessingAudio(false);
+
+        setProcessingSource('mic'); // solo para la UI; no muestra spinner
+        setRecordingName('');       // que el doctor escriba el nombre
+        setLastResultSource('mic'); // ⬅️ fuerza la tarjeta "Nueva Consulta Médica"     // que el doctor escriba el nombre  // cambia la tarjeta a “Nueva Consulta Médica”
+    };
+
     if (loading) {
         return (
             <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
@@ -281,7 +312,14 @@ const Dashboard = () => {
     }
 
     // Oculta el empty state si estás grabando o procesando
-    const showEmptyState = !transcription && !summary && recordings.length === 0 && !audioBlob && !isRecording && !processingAudio;
+    const showEmptyState =
+        !transcription &&
+        !summary &&
+        recordings.length === 0 &&
+        !audioBlob &&
+        !isRecording &&
+        !processingAudio &&
+        !lastResultSource;
 
     const planName = userData?.planName || userData?.plan || userData?.subscription?.plan || 'Gratis';
 
@@ -372,12 +410,12 @@ const Dashboard = () => {
 
                     <button
                         className="action-card action-mic"
-                        onClick={isRecording ? handleStopRecording : handleStartRecording}
+                        onClick={startMicFlow}
                         disabled={processingAudio}
-                        title={isRecording ? 'Detener grabación' : 'Grabar micrófono'}
+                        title="Grabar consulta (micrófono)"
                     >
                         <IconMic size={22} />
-                        <span>{isRecording ? 'Detener grabación' : 'Grabar micrófono'}</span>
+                        <span>Grabar consulta (micrófono)</span>
                     </button>
 
                     <button
@@ -404,84 +442,114 @@ const Dashboard = () => {
                 )}
 
                 {/* Bloque de “Nueva Consulta” + resultados (cuando haya actividad) */}
+                {/* Bloque de “Nueva Consulta” + resultados (cuando haya actividad) */}
                 {!showEmptyState && (
                     <>
-                        <Card className="mb-4">
-                            <Card.Header><h3>Nueva Consulta Médica</h3></Card.Header>
-                            <Card.Body>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Nombre de la consulta</Form.Label>
-                                    <Form.Control
-                                        type="text"
-                                        value={recordingName}
-                                        onChange={(e) => setRecordingName(e.target.value)}
-                                        placeholder="Ej: Consulta Paciente Juan Pérez - 25/07/2025"
-                                        required
-                                        disabled={processingSource === 'upload' && processingAudio}
-                                    />
-                                </Form.Group>
-
-                                <div className="recording-controls mb-4">
+                        {lastResultSource === 'upload' ? (
+                            // ========= Vista post-subida de archivo =========
+                            <Card className="mb-4">
+                                <Card.Header><h3>Consulta procesada</h3></Card.Header>
+                                <Card.Body>
                                     {processingSource === 'upload' && processingAudio ? (
-                                        <Alert variant="info" className="mb-0 d-flex align-items-center">
+                                        <Alert variant="info" className="mb-3 d-flex align-items-center">
                                             <Spinner animation="border" size="sm" className="me-2" />
                                             Analizando archivo subido… Esto puede tardar unos minutos.
                                         </Alert>
-                                    ) : (
-                                        <>
-                                            {!isRecording ? (
-                                                <motion.button
-                                                    className="btn btn-primary"
-                                                    onClick={handleStartRecording}
-                                                    disabled={processingAudio}
-                                                    whileHover={{ scale : 1.05}}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    transition={{ type : 'spring', stiffness: 300}}
-                                                >
-                                                    <span className="me-2"><IconMic /></span>
-                                                    Iniciar grabación
-                                                </motion.button>
-                                            ) : (
-                                                <motion.button
-                                                    className="btn btn-danger recording-btn"
-                                                    onClick={handleStopRecording}
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    transition={{ type: 'spring', stiffness: 300 }}
-                                                >
-                                                    Detener grabación
-                                                </motion.button>
-                                            )}
+                                    ) : null}
 
-                                            {audioBlob && !isRecording && (
-                                                <motion.button
-                                                    className="btn btn-success ms-3"
-                                                    onClick={handleProcessAudio}
-                                                    disabled={processingAudio || !recordingName}
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    transition={{ type: 'spring', stiffness: 300 }}
-                                                >
-                                                    {processingAudio ? (
-                                                        <>
-                                                            <Spinner animation="border" size="sm" className="me-2" />
-                                                            Procesando…
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <span className="me-2"><IconCpu /></span>
-                                                            Procesar audio
-                                                        </>
-                                                    )}
-                                                </motion.button>
-                                            )}
-                                        </>
-                                    )}
-                                </div>
+                                    <Form.Group className="mb-2">
+                                        <Form.Label>Nombre de la consulta</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            value={recordingName}
+                                            onChange={(e) => setRecordingName(e.target.value)}
+                                            placeholder="Ej: Consulta Paciente Juan Pérez - 25/07/2025"
+                                            required
+                                        />
+                                    </Form.Group>
 
-                            </Card.Body>
-                        </Card>
+                                    <small className="text-muted">
+                                        Para grabar una nueva consulta, usa “Grabar consulta (micrófono)” en Acciones rápidas.
+                                    </small>
+                                </Card.Body>
+                            </Card>
+                        ) : (
+                            // ========= Flujo normal de micrófono =========
+                            <Card className="mb-4">
+                                <Card.Header><h3>Nueva Consulta Médica</h3></Card.Header>
+                                <Card.Body>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Nombre de la consulta</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            value={recordingName}
+                                            onChange={(e) => setRecordingName(e.target.value)}
+                                            placeholder="Ej: Consulta Paciente Juan Pérez - 25/07/2025"
+                                            required
+                                            disabled={processingSource === 'upload' && processingAudio}
+                                        />
+                                    </Form.Group>
 
+                                    <div className="recording-controls mb-4">
+                                        {processingSource === 'upload' && processingAudio ? (
+                                            <Alert variant="info" className="mb-0 d-flex align-items-center">
+                                                <Spinner animation="border" size="sm" className="me-2" />
+                                                Analizando archivo subido… Esto puede tardar unos minutos.
+                                            </Alert>
+                                        ) : (
+                                            <>
+                                                {!isRecording ? (
+                                                    <motion.button
+                                                        className="btn btn-primary"
+                                                        onClick={() => { setLastResultSource('mic'); handleStartRecording(); }}
+                                                        disabled={processingAudio}
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        transition={{ type: 'spring', stiffness: 300 }}
+                                                    >
+                                                        <span className="me-2"><IconMic /></span>
+                                                        Iniciar grabación
+                                                    </motion.button>
+                                                ) : (
+                                                    <motion.button
+                                                        className="btn btn-danger recording-btn"
+                                                        onClick={handleStopRecording}
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        transition={{ type: 'spring', stiffness: 300 }}
+                                                    >
+                                                        Detener grabación
+                                                    </motion.button>
+                                                )}
+
+                                                {audioBlob && !isRecording && (
+                                                    <motion.button
+                                                        className="btn btn-success ms-3"
+                                                        onClick={handleProcessAudio}
+                                                        disabled={processingAudio || !recordingName}
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        transition={{ type: 'spring', stiffness: 300 }}
+                                                    >
+                                                        {processingAudio ? (
+                                                            <>
+                                                                <Spinner animation="border" size="sm" className="me-2" />
+                                                                Procesando…
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <span className="me-2"><IconCpu /></span>
+                                                                Procesar audio
+                                                            </>
+                                                        )}
+                                                    </motion.button>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                </Card.Body>
+                            </Card>
+                        )}
                         {(transcription || summary) && (
                             <Row>
                                 <Col md={12}>
@@ -508,6 +576,7 @@ const Dashboard = () => {
                         )}
                     </>
                 )}
+
             </main>
         </div>
     );
