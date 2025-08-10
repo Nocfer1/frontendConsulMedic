@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Container, Row, Col, Card, Button, Spinner, Alert, ProgressBar, Badge } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import API_BASE from '../../apiConfig';
-import './Plan.css';
+
 
 const Plan = () => {
     const [loading, setLoading] = useState(true);
