@@ -366,7 +366,7 @@ const Dashboard = () => {
         !processingAudio &&
         !lastResultSource;
 
-    const planName = userData?.planName || userData?.plan || userData?.subscription?.plan || 'Gratis';
+    const planName = userData?.planName || userData?.plan || userData?.subscription?.plan ;
 
     return (
         <div className="dashboard-shell">
