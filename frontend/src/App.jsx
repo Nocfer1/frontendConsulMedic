@@ -38,6 +38,7 @@ const AppRoutes = () => {
             '/dashboard', 
             '/consultations', 
             '/profile',
+            '/plan'
         ];
 
         setIsDashboardPath(dashboardPaths.some(path => 

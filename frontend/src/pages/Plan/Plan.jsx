@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Container, Row, Col, Card, Button, Spinner, Alert, ProgressBar } from 'react-bootstrap';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Container, Row, Col, Card, Button, Spinner, Alert, ProgressBar, Badge } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import API_BASE from '../../apiConfig';
+import './Plan.css';
 
 const Plan = () => {
     const [loading, setLoading] = useState(true);
@@ -13,136 +14,158 @@ const Plan = () => {
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (!token) { navigate('/login'); return; }
+
+        const controller = new AbortController();
+
         (async () => {
             try {
-                const [uRes, usgRes] = await Promise.allSettled([
-                    fetch(`${API_BASE}/user/profile`, { headers: { Authorization: `Bearer ${token}` } }),
-                    fetch(`${API_BASE}/billing/usage`, { headers: { Authorization: `Bearer ${token}` } })
+                setLoading(true);
+                setError('');
+
+                // Perfil + uso en paralelo
+                const [meRes, usageRes] = await Promise.all([
+                    fetch(`${API_BASE}/account/me`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                        signal: controller.signal
+                    }),
+                    fetch(`${API_BASE}/billing/usage`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                        signal: controller.signal
+                    })
                 ]);
 
-                if (uRes.status === 'fulfilled' && uRes.value.ok) {
-                    const u = await uRes.value.json();
-                    setUser(u);
-                } else {
-                    throw new Error('No se pudo cargar el usuario.');
-                }
+                if (!meRes.ok) throw new Error('No fue posible obtener tu perfil.');
+                const me = await meRes.json();
+                const usageJson = usageRes.ok ? await usageRes.json() : null;
 
-                if (usgRes.status === 'fulfilled' && usgRes.value.ok) {
-                    const data = await usgRes.value.json();
-                    setUsage(data);
+                setUser(me);
+                setUsage(usageJson);
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    setError(err.message || 'Ocurrió un error al cargar la información.');
                 }
-            } catch (e) {
-                setError(e.message || 'Error al cargar el plan');
             } finally {
                 setLoading(false);
             }
         })();
+
+        return () => controller.abort();
     }, [navigate]);
 
-    const planName = user?.planName || user?.plan || user?.subscription?.plan || 'Gratis';
-    const renewDate = user?.subscription?.renewalDate || user?.planRenewalDate || null;
+    // Derivados seguros (distintas posibles formas según tu API)
+    const planName = useMemo(() =>
+            user?.planName || user?.plan?.name || (user?.plan === 0 ? 'Gratis' : null) || 'Gratis'
+        , [user]);
 
-    // Deriva uso si tu API lo expone con otros nombres
-    const minutesUsed  = usage?.transcriptionMinutesUsed ?? usage?.minutesUsed ?? null;
-    const minutesLimit = usage?.transcriptionMinutesLimit ?? usage?.minutesLimit ?? null;
-    const percent = (minutesUsed != null && minutesLimit)
-        ? Math.min(100, Math.round((minutesUsed / minutesLimit) * 100))
-        : null;
+    const minutesUsed = usage?.minutesUsed ?? 0;
+    const minutesLimit = usage?.minutesLimit ?? (planName === 'Gratis' ? 60 : 600);
+    const minutesPct = Math.min(100, Math.round((minutesUsed / Math.max(1, minutesLimit)) * 100));
+
+    const transcriptsUsed = usage?.transcriptions ?? 0;
+    const transcriptsLimit = usage?.transcriptionsLimit ?? (planName === 'Gratis' ? 20 : 500);
+    const transcriptsPct = Math.min(100, Math.round((transcriptsUsed / Math.max(1, transcriptsLimit)) * 100));
+
+    const storageUsed = usage?.storageMBUsed ?? 0;
+    const storageLimit = usage?.storageMBLimit ?? (planName === 'Gratis' ? 512 : 10240);
+    const storagePct = Math.min(100, Math.round((storageUsed / Math.max(1, storageLimit)) * 100));
 
     if (loading) {
         return (
-            <Container className="d-flex justify-content-center align-items-center" style={{ minHeight:'60vh' }}>
-                <Spinner animation="border" />
-            </Container>
+            <>
+                <Container className="py-4 d-flex justify-content-center">
+                    <Spinner animation="border" role="status" />
+                </Container>
+            </>
         );
     }
 
     return (
-        <Container className="py-4">
-            <Row className="mb-4">
-                <Col>
-                    <h1 className="mb-1">Mi plan</h1>
-                    <div className="text-muted">Estado de tu suscripción y límites de uso</div>
-                </Col>
-            </Row>
+        <>
+            <Container className="py-4">
+                <Row className="align-items-center mb-2">
+                    <Col>
+                        <h1 className="mb-0">Mi plan</h1>
+                        <div className="text-muted">Estado de tu suscripción y límites de uso</div>
+                    </Col>
+                    <Col xs="auto">
+                        <Badge bg="light" text="dark">Plan actual: {planName}</Badge>
+                    </Col>
+                </Row>
 
-            {error && <Alert variant="danger" className="mb-4">{error}</Alert>}
+                {error && <Alert variant="danger" className="mb-3">{error}</Alert>}
 
-            <Row className="g-4">
-                <Col md={6}>
-                    <Card className="h-100">
-                        <Card.Header><strong>Resumen</strong></Card.Header>
-                        <Card.Body>
-                            <div className="d-flex align-items-center justify-content-between">
-                                <div>
-                                    <div className="fs-5 mb-1">
-                                        Plan actual <span className="badge bg-light text-dark ms-2">{planName}</span>
-                                    </div>
-                                    <div className="text-muted">
-                                        {renewDate ? `Renueva el ${new Date(renewDate).toLocaleDateString()}` : 'Renovación: N/D'}
-                                    </div>
-                                </div>
-                                <div>
-                                    {planName === 'Gratis' ? (
-                                        <Button variant="primary" onClick={() => navigate('/billing')}>Mejorar plan</Button>
-                                    ) : (
-                                        <Button variant="outline-primary" onClick={() => navigate('/billing')}>Gestionar</Button>
-                                    )}
-                                </div>
-                            </div>
-
-                            <hr/>
-
-                            <ul className="mb-0">
-                                <li>Transcripción y resumen automático de consultas</li>
-                                <li>Almacenamiento seguro de grabaciones</li>
-                                <li>Soporte por correo</li>
-                            </ul>
-                        </Card.Body>
-                    </Card>
-                </Col>
-
-                <Col md={6}>
-                    <Card className="h-100">
-                        <Card.Header><strong>Límites y uso</strong></Card.Header>
-                        <Card.Body>
-                            {minutesLimit ? (
-                                <>
-                                    <div className="d-flex justify-content-between mb-2">
+                <Row className="g-4">
+                    {/* Consumo */}
+                    <Col lg={8}>
+                        <Card className="h-100">
+                            <Card.Header><strong>Consumo de este mes</strong></Card.Header>
+                            <Card.Body>
+                                <div className="mb-4">
+                                    <div className="d-flex justify-content-between mb-1">
                                         <span>Minutos de transcripción</span>
-                                        <span>{minutesUsed ?? 0} / {minutesLimit}</span>
+                                        <span className="text-muted">{minutesUsed} / {minutesLimit} min</span>
                                     </div>
-                                    <ProgressBar now={percent ?? 0} animated />
-                                    <small className="text-muted d-block mt-2">{percent ?? 0}% usado este ciclo</small>
-                                </>
-                            ) : (
-                                <div className="text-muted">No hay datos de uso disponibles.</div>
-                            )}
-                        </Card.Body>
-                    </Card>
-                </Col>
-            </Row>
+                                    <ProgressBar now={minutesPct} label={`${minutesPct}%`} />
+                                </div>
 
-            <Row className="g-4 mt-1">
-                <Col md={12}>
-                    <Card>
-                        <Card.Header><strong>Pagos</strong></Card.Header>
-                        <Card.Body className="d-flex justify-content-between align-items-center">
-                            <div>
-                                <div className="mb-1">Consulta tu historial de pagos y boletas/facturas.</div>
-                                <small className="text-muted">Si aún no tienes suscripción, puedes contratarla aquí.</small>
-                            </div>
-                            <div className="d-flex gap-2">
-                                <Button variant="outline-secondary" onClick={() => navigate('/billing/history')}>Historial</Button>
-                                <Button variant="primary" onClick={() => navigate('/billing')}>
-                                    {planName === 'Gratis' ? 'Contratar' : 'Gestionar'}
+                                <div className="mb-4">
+                                    <div className="d-flex justify-content-between mb-1">
+                                        <span>Transcripciones</span>
+                                        <span className="text-muted">{transcriptsUsed} / {transcriptsLimit}</span>
+                                    </div>
+                                    <ProgressBar now={transcriptsPct} label={`${transcriptsPct}%`} />
+                                </div>
+
+                                <div>
+                                    <div className="d-flex justify-content-between mb-1">
+                                        <span>Almacenamiento</span>
+                                        <span className="text-muted">{storageUsed} / {storageLimit} MB</span>
+                                    </div>
+                                    <ProgressBar now={storagePct} label={`${storagePct}%`} />
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+
+                    {/* Info + acciones */}
+                    <Col lg={4}>
+                        <Card className="mb-4">
+                            <Card.Header><strong>Plan actual</strong></Card.Header>
+                            <Card.Body>
+                                <h4 className="mb-1">{planName}</h4>
+                                <div className="text-muted mb-3">
+                                    {planName === 'Gratis' ? 'Funciones esenciales para comenzar.' : 'Beneficios activos de tu suscripción.'}
+                                </div>
+                                <ul className="mb-4">
+                                    <li>Transcripción con IA</li>
+                                    <li>Resúmenes automáticos</li>
+                                    <li>Exportación PDF/TXT</li>
+                                    {planName !== 'Gratis' && <li>Soporte prioritario</li>}
+                                </ul>
+                                <div className="d-flex gap-2">
+                                    <Button variant="outline-primary" onClick={() => navigate('/billing/history')}>Historial</Button>
+                                    <Button variant="primary" onClick={() => navigate('/billing')}>
+                                        {planName === 'Gratis' ? 'Mejorar plan' : 'Gestionar'}
+                                    </Button>
+                                </div>
+                            </Card.Body>
+                        </Card>
+
+                        <Card>
+                            <Card.Header><strong>¿Necesitas más límites?</strong></Card.Header>
+                            <Card.Body>
+                                <p className="mb-3 text-muted">
+                                    Pásate a un plan superior para aumentar minutos, transcripciones y espacio de almacenamiento.
+                                </p>
+                                <Button variant="primary" className="w-100" onClick={() => navigate('/billing')}>
+                                    Ver planes disponibles
                                 </Button>
-                            </div>
-                        </Card.Body>
-                    </Card>
-                </Col>
-            </Row>
-        </Container>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                </Row>
+            </Container>
+        </>
     );
 };
 
