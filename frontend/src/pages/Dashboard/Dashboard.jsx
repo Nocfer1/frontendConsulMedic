@@ -2,73 +2,333 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Button, Alert, Form, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import './Dashboard.css';
-import { motion } from 'motion/react';
 import {
-    IconMic, IconSearch, IconCpu,
-    IconUpload, IconLink, IconDictation,
-    IconFolder, IconFolderPlus, IconTrash, IconPencil, IconHistory
+    IconMic, IconCpu, IconUpload, IconDictation, IconHistory, IconFolder, IconFolderPlus, IconPencil, IconTrash, IconSearch
 } from '../../components/Icons';
 import API_BASE from '../../apiConfig';
 
 const Dashboard = () => {
+    const navigate = useNavigate();
+
+    // -------------------- Estado --------------------
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [error,   setError] = useState('');
+    const [error, setError] = useState('');
     const [recordings, setRecordings] = useState([]);
+
+    // Mic
     const [isRecording, setIsRecording] = useState(false);
+    const mediaRecorderRef = useRef(null);
     const [audioBlob, setAudioBlob] = useState(null);
+
+    // Resultados
     const [transcription, setTranscription] = useState('');
     const [summary, setSummary] = useState('');
+
+    // UI/flujo
     const [processingAudio, setProcessingAudio] = useState(false);
-    const [mediaRecorder, setMediaRecorder] = useState(null);
-    const [audioChunks, setAudioChunks] = useState([]);
     const [recordingName, setRecordingName] = useState('');
-    const navigate = useNavigate();
     const [lastResultSource, setLastResultSource] = useState(null); // 'upload' | 'mic' | null
     const [processingSource, setProcessingSource] = useState(null); // 'upload' | 'mic' | null
 
+    // Sidebar
+    const [folders, setFolders] = useState([
+        { id: 'inbox', name: 'General' },
+        { id: 'reports', name: 'Informes' }
+    ]);
+    const [selectedFolder, setSelectedFolder] = useState('inbox');
 
-    // ---------- Cargar datos de usuario y grabaciones ----------
+    const fileInputRef = useRef(null);
+
+    // -------------------- Helpers comunes --------------------
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+    const callFinalize = async (summaryFileName) => {
+        const token = localStorage.getItem('token');
+        return fetch(`${API_BASE}/recordings/finalize`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {})
+            },
+            // El backend espera un STRING JSON, no un objeto
+            body: JSON.stringify(summaryFileName)
+        });
+    };
+
+    // Polling tolerante a GCS NotFound y con backoff suave
+    const waitForFinalize = async (
+        summaryFileName,
+        {
+            maxMs = 180000,      // ~3 min
+            startDelayMs = 3000, // espera inicial para consistencia de GCS
+            stepMs = 2000,       // primer intervalo
+            stepMaxMs = 10000    // tope del intervalo
+        } = {}
+    ) => {
+        await sleep(startDelayMs);
+        const started = Date.now();
+        let delay = stepMs;
+
+        while (Date.now() - started < maxMs) {
+            const res = await callFinalize(summaryFileName);
+            const text = await res.text().catch(() => '');
+
+            if (res.status === 200) {
+                try { return JSON.parse(text); } catch { return {}; }
+            }
+
+            const isTransient =
+                res.status === 202 ||
+                ((res.status === 500 || res.status === 404) && /NotFound|storage|GCS/i.test(text));
+
+            // Esperar y seguir intentando
+            await sleep(delay);
+            delay = Math.min(delay + 1000, stepMaxMs);
+
+            if (!isTransient && res.status !== 429) {
+                // Si no es un estado transitorio (ni 202/404/500 con GCS), seguimos igual
+                // porque el back histórico a veces responde 400/415 momentáneos.
+            }
+        }
+        throw new Error('El resumen no estuvo listo a tiempo.');
+    };
+
+    // Convierte WAV/MP3/M4A a WebM/Opus en el navegador (si no ya es WebM)
+    const ensureWebM = async (file) => {
+        const looksWebM = (file?.type || '').includes('webm') || /\.webm$/i.test(file?.name || '');
+        if (looksWebM) return file;
+
+        if (!window.MediaRecorder || !MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+            throw new Error('Este navegador no puede convertir a WebM. Sube un archivo .webm');
+        }
+
+        // 1) Decodificar a PCM
+        const arrayBuffer = await file.arrayBuffer();
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioCtx();
+        const buffer = await ctx.decodeAudioData(arrayBuffer);
+
+        // 2) Reproducir el buffer hacia un destino de MediaStream y grabarlo como WebM/Opus
+        const dest = ctx.createMediaStreamDestination();
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.connect(dest);
+
+        const chunks = [];
+        const rec = new MediaRecorder(dest.stream, { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 128000 });
+        rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+        const stopped = new Promise(res => { rec.onstop = res; });
+
+        rec.start(100);
+        src.start();
+
+        const stopAfter = Math.ceil(buffer.duration * 1000) + 120; // margen
+        setTimeout(() => { if (rec.state !== 'inactive') rec.stop(); }, stopAfter);
+        await stopped;
+
+        try { src.disconnect(); dest.disconnect(); ctx.close(); } catch {}
+
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const base = (file.name || 'audio').replace(/\.[^/.]+$/, '') || 'audio';
+        return new File([blob], `${base}.webm`, { type: 'audio/webm' });
+    };
+
+    // -------------------- Carga de usuario y listados --------------------
     useEffect(() => {
         const fetchUserData = async () => {
             try {
                 const token = localStorage.getItem('token');
                 if (!token) { navigate('/login'); return; }
 
-                const response = await fetch(`${API_BASE}/user/profile`, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                const profileRes = await fetch(`${API_BASE}/user/profile`, {
+                    headers: { Authorization: `Bearer ${token}` }
                 });
-                if (!response.ok) throw new Error('No se pudo obtener la información del usuario');
-                const data = await response.json();
-                setUserData(data);
+                if (!profileRes.ok) throw new Error('No se pudo obtener la información del usuario');
+                setUserData(await profileRes.json());
 
-                const recordingsResponse = await fetch(`${API_BASE}/recordings`, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                const recRes = await fetch(`${API_BASE}/recordings`, {
+                    headers: { Authorization: `Bearer ${token}` }
                 });
-                if (recordingsResponse.ok) {
-                    const recordingsData = await recordingsResponse.json();
-                    setRecordings(Array.isArray(recordingsData) ? recordingsData : []);
-                }
+                if (recRes.ok) setRecordings(await recRes.json());
             } catch (err) {
-                console.error('Error:', err);
+                console.error(err);
                 setError('Error al cargar los datos del usuario');
             } finally {
                 setLoading(false);
             }
         };
-
         fetchUserData();
     }, [navigate]);
 
-    // ---------- Sidebar (carpetas) ----------
-    const [folders, setFolders] = useState([
-        { id: 'inbox',   name: 'General'  },
-        { id: 'reports', name: 'Informes' },
-    ]);
-    const [selectedFolder, setSelectedFolder] = useState('inbox');
-    const fileInputRef = useRef(null);
+    // -------------------- Subir archivo --------------------
+    const handleClickUpload = () => fileInputRef.current?.click();
+
+    const processUploadedFile = async (file) => {
+        setProcessingSource('upload');
+        setProcessingAudio(true);
+        setError('');
+        setTranscription('');
+        setSummary('');
+        try {
+            // Asegurar WebM real
+            const webmFile = await ensureWebM(file);
+
+            const formData = new FormData();
+            formData.append('audioFile', webmFile, webmFile.name || 'audio.webm');
+
+            const uploadResponse = await fetch(`${API_BASE}/recordings/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            if (!uploadResponse.ok) throw new Error('Error al subir el archivo');
+
+            const uploadData = await uploadResponse.json();
+            const uploadedFileName = (uploadData.uri || '').split('/').pop(); // ej: GUID.webm
+            const summaryFileName = `resumen-${uploadedFileName}.txt`;        // contrato histórico del back
+
+            console.debug('[finalize][derived]', { uploadedFileName, summaryFileName });
+
+            const resultData = await waitForFinalize(summaryFileName);
+            setSummary(resultData?.summary || 'No se pudo obtener el resumen.');
+            setRecordingName('');
+            setLastResultSource('upload');
+
+            const token = localStorage.getItem('token');
+            const recRes = await fetch(`${API_BASE}/recordings`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (recRes.ok) setRecordings(await recRes.json());
+        } catch (err) {
+            console.error('Error:', err);
+            setError(err?.message || 'Error al procesar el archivo. Intenta nuevamente.');
+        } finally {
+            setProcessingAudio(false);
+            setProcessingSource(null);
+        }
+    };
+
+    const handleUploadFileChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        await processUploadedFile(file);
+        e.target.value = ''; // permitir re-subir el mismo archivo
+    };
+
+    // -------------------- Micrófono --------------------
+    const handleStartRecording = async () => {
+        try {
+            setLastResultSource('mic');
+            setProcessingSource('mic');
+            setTranscription('');
+            setSummary('');
+
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mr = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+            const chunks = [];
+            mr.ondataavailable = (e) => { if (e.data?.size) chunks.push(e.data); };
+            mr.onstop = () => {
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                setAudioBlob(blob);
+            };
+            mr.start();
+            mediaRecorderRef.current = mr;
+            setIsRecording(true);
+        } catch (err) {
+            console.error('Error al iniciar la grabación:', err);
+            setError('No se pudo acceder al micrófono');
+        }
+    };
+
+    const handleStopRecording = () => {
+        const mr = mediaRecorderRef.current;
+        if (mr && isRecording) {
+            mr.stop();
+            mr.stream.getTracks().forEach(t => t.stop());
+            setIsRecording(false);
+        }
+    };
+
+    // nombre sugerido tras grabar
+    useEffect(() => {
+        if (audioBlob && !recordingName) {
+            const d = new Date();
+            const stamp = d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+            setRecordingName(`Consulta ${stamp}`);
+        }
+    }, [audioBlob, recordingName]);
+
+    const handleProcessAudio = async () => {
+        if (!audioBlob) { setError('Por favor graba audio'); return; }
+
+        setProcessingSource('mic');
+        setProcessingAudio(true);
+        setError('');
+        setTranscription('');
+        setSummary('');
+
+        try {
+            const formData = new FormData();
+            formData.append('audioFile', audioBlob, 'grabacion.webm');
+
+            const uploadResponse = await fetch(`${API_BASE}/recordings/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            if (!uploadResponse.ok) throw new Error('Error al subir el audio');
+
+            const uploadData = await uploadResponse.json();
+            const uploadedFileName = (uploadData.uri || '').split('/').pop();
+            const summaryFileName = `resumen-${uploadedFileName}.txt`;
+
+            const resultData = await waitForFinalize(summaryFileName);
+            setSummary(resultData?.summary || 'No se pudo obtener el resumen.');
+
+            // refrescar listado
+            const token = localStorage.getItem('token');
+            const recRes = await fetch(`${API_BASE}/recordings`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (recRes.ok) setRecordings(await recRes.json());
+
+            setAudioBlob(null);
+            setRecordingName('');
+            setLastResultSource('mic');
+        } catch (err) {
+            console.error('Error:', err);
+            setError(err?.message || 'Error al procesar el audio. Intenta nuevamente.');
+        } finally {
+            setProcessingAudio(false);
+            setProcessingSource(null);
+        }
+    };
+
+    // -------------------- Otros --------------------
+    const handleViewRecording = async (recordingId) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE}/recordings/${recordingId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('No se pudo obtener la grabación');
+            const data = await response.json();
+            setTranscription(data.transcription || '');
+            setSummary(data.summary || '');
+        } catch (err) {
+            console.error(err);
+            setError('Error al cargar la grabación');
+        }
+    };
+
+    const startMicFlow = () => {
+        if (isRecording) handleStopRecording();
+        setTranscription('');
+        setSummary('');
+        setAudioBlob(null);
+        setProcessingAudio(false);
+        setRecordingName('');
+        setLastResultSource('mic');
+    };
 
     const handleAddFolder = () => {
         const name = prompt('Nombre de la carpeta:');
@@ -88,221 +348,7 @@ const Dashboard = () => {
         if (selectedFolder === id) setSelectedFolder('inbox');
     };
 
-    // Subir archivo (mismo pipeline que grabación)
-    const handleClickUpload = () => fileInputRef.current?.click();
-
-    // 2. Esperar hasta que el resumen esté listo (polling)
-    const waitForFinalize = async (filename, retries = 10, delay = 3000) => {
-        for (let i = 0; i < retries; i++) {
-            const res = await fetch(`${API_BASE}/recordings/finalize`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(filename)
-            });
-
-            if (res.ok) {
-                const result = await res.json();
-                return result;
-            }
-
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-
-        throw new Error('El resumen no estuvo listo a tiempo.');
-    };
-
-    const processUploadedFile = async (file) => {
-        setProcessingSource('upload');
-        setProcessingAudio(true);
-        setError('');
-        setTranscription('');
-        setSummary('');
-        try {
-            const formData = new FormData();
-            formData.append('audioFile', file);
-
-            const uploadResponse = await fetch(`${API_BASE}/recordings/upload`, {
-                method: 'POST',
-                body: formData
-            });
-            if (!uploadResponse.ok) throw new Error('Error al subir el archivo');
-
-            const uploadData = await uploadResponse.json();
-            const uploadedFileName = decodeURIComponent(uploadData.uri.split('/').pop());
-            const summaryFileName  = `resumen-${uploadedFileName}.txt`;
-
-            const resultData = await waitForFinalize(summaryFileName);
-
-            setSummary(resultData.summary || 'No se pudo obtener el resumen.');
-            setRecordingName('');           // el nombre lo pone el doctor, no el archivo
-            setLastResultSource('upload');  // para que NO aparezca el menú de grabación
-
-            const token = localStorage.getItem('token');
-            const recordingsResponse = await fetch(`${API_BASE}/recordings`, {
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (recordingsResponse.ok) setRecordings(await recordingsResponse.json());
-        } catch (err) {
-            console.error('Error:', err);
-            setError('Error al procesar el archivo. Intenta nuevamente.');
-        } finally {
-            setProcessingAudio(false);
-            setProcessingSource(null);
-        }
-    };
-
-    const handleUploadFileChange = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        await processUploadedFile(file);
-        e.target.value = ''; // permitir subir el mismo archivo de nuevo
-    };
-
-    const handleImportUrl = async () => {
-        const url = prompt('Pega la URL del audio/archivo:');
-        if (!url) return;
-        // TODO: implementar importación por URL en el backend
-        console.log('URL a importar:', url);
-    };
-
-    // ---------- Grabación (micrófono) ----------
-    const handleStartRecording = async () => {
-        try {
-            setLastResultSource('mic');
-            setProcessingSource('mic');
-            setTranscription('');
-            setSummary('');
-
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream);
-            const chunks = [];
-
-            recorder.ondataavailable = e => { chunks.push(e.data); };
-            recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'audio/webm' });
-                setAudioBlob(blob);
-                setAudioChunks([]);
-            };
-
-            setMediaRecorder(recorder);
-            setAudioChunks(chunks);
-            recorder.start();
-            setIsRecording(true);
-        } catch (err) {
-            console.error('Error al iniciar la grabación:', err);
-            setError('No se pudo acceder al micrófono');
-        }
-    };
-
-    const handleStopRecording = () => {
-        if (mediaRecorder && isRecording) {
-            mediaRecorder.stop();
-            setIsRecording(false);
-            mediaRecorder.stream.getTracks().forEach(track => track.stop());
-        }
-    };
-
-    // Nombre sugerido cuando termina de grabar y hay blob
-    useEffect(() => {
-        if (audioBlob && !recordingName) {
-            const d = new Date();
-            const stamp = d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
-            setRecordingName(`Consulta ${stamp}`);
-        }
-    }, [audioBlob, recordingName]);
-
-    const handleProcessAudio = async () => {
-        if (!audioBlob) { setError('Por favor grabe audio'); return; }
-
-        setProcessingSource('mic');
-        setProcessingAudio(true);
-        setError('');
-        setTranscription('');
-        setSummary('');
-
-        try {
-            const formData = new FormData();
-            formData.append('audioFile', audioBlob);
-
-            const uploadResponse = await fetch(`${API_BASE}/recordings/upload`, {
-                method: 'POST',
-                body: formData
-            });
-            if (!uploadResponse.ok) throw new Error('Error al subir el audio');
-
-            const uploadData = await uploadResponse.json();
-            const uploadedFileName = uploadData.uri.split('/').pop();
-            const summaryFileName  = `resumen-${uploadedFileName}.txt`;
-
-            const resultData = await waitForFinalize(summaryFileName);
-
-            setSummary(resultData.summary || 'No se pudo obtener el resumen.');
-            const token = localStorage.getItem('token');
-            const recordingsResponse = await fetch(`${API_BASE}/recordings`, {
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (recordingsResponse.ok) setRecordings(await recordingsResponse.json());
-
-            setAudioBlob(null);
-            setRecordingName('');
-        } catch (err) {
-            console.error('Error:', err);
-            setError('Error al procesar el audio. Intenta nuevamente.');
-        } finally {
-            setProcessingAudio(false);
-            setProcessingSource(null);
-        }
-    };
-
-    const handleViewRecording = async (recordingId) => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE}/recordings/${recordingId}`, {
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!response.ok) throw new Error('No se pudo obtener la grabación');
-
-            const data = await response.json();
-            setTranscription(data.transcription);
-            setSummary(data.summary);
-        } catch (err) {
-            console.error('Error:', err);
-            setError('Error al cargar la grabación');
-        }
-    };
-
-    // limpiar la vista de resultados/estados previos
-    const resetConsultView = () => {
-        setTranscription('');
-        setSummary('');
-        setAudioBlob(null);
-        setIsRecording(false);
-        setProcessingAudio(false);
-        setError && setError('');
-    };
-
-    // Al iniciar el flujo de micrófono desde el botón superior
-    const startMicFlow = () => {
-        if (isRecording) handleStopRecording(); // por si quedó algo activo
-
-        // limpiar restos de un flujo anterior (subida o mic)
-        setTranscription('');
-        setSummary('');
-        setAudioBlob(null);
-        setAudioChunks([]);
-        setIsRecording(false);
-        setProcessingAudio(false);
-
-        setProcessingSource('mic'); // solo para la UI; no muestra spinner
-        setRecordingName('');       // que el doctor escriba el nombre
-        setLastResultSource('mic'); // ⬅️ fuerza la tarjeta "Nueva Consulta Médica"     // que el doctor escriba el nombre  // cambia la tarjeta a “Nueva Consulta Médica”
-    };
-
+    // -------------------- Render --------------------
     if (loading) {
         return (
             <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
@@ -311,7 +357,6 @@ const Dashboard = () => {
         );
     }
 
-    // Oculta el empty state si estás grabando o procesando
     const showEmptyState =
         !transcription &&
         !summary &&
@@ -378,13 +423,13 @@ const Dashboard = () => {
 
             {/* Main */}
             <main className="main">
-                {/* Header con buscador */}
                 <div className="main-header">
                     <h1>Dashboard</h1>
                     <div className="searchbar">
                         <IconSearch size={18} />
                         <input className="form-control" placeholder="Buscar por nombre, fecha o estado…" />
                     </div>
+                    <div className="ms-auto badge bg-secondary">{planName}</div>
                 </div>
 
                 {error && <Alert variant="danger" className="mb-3">{error}</Alert>}
@@ -401,11 +446,6 @@ const Dashboard = () => {
                             accept="audio/*,video/*,.wav,.mp3,.m4a,.webm"
                             hidden
                         />
-                    </button>
-
-                    <button className="action-card action-url" onClick={handleImportUrl} disabled={processingAudio}>
-                        <IconLink size={22} />
-                        <span>Importar URL</span>
                     </button>
 
                     <button
@@ -429,33 +469,31 @@ const Dashboard = () => {
                     </button>
                 </div>
 
-                {/* Estado vacío centrado */}
+                {/* Estado vacío */}
                 {showEmptyState && (
                     <div className="empty-state">
                         <div className="empty-icon">↑</div>
                         <h4>Agrega tu primera consulta</h4>
-                        <p>Sube un archivo, importa una URL o graba audio. Crearemos transcripciones y resúmenes para ti.</p>
+                        <p>Sube un archivo o graba audio. Crearemos transcripciones y resúmenes para ti.</p>
                         <Button variant="primary" onClick={handleClickUpload} disabled={processingAudio}>
                             Explorar opciones
                         </Button>
                     </div>
                 )}
 
-                {/* Bloque de “Nueva Consulta” + resultados (cuando haya actividad) */}
-                {/* Bloque de “Nueva Consulta” + resultados (cuando haya actividad) */}
+                {/* Flujo principal */}
                 {!showEmptyState && (
                     <>
                         {lastResultSource === 'upload' ? (
-                            // ========= Vista post-subida de archivo =========
                             <Card className="mb-4">
                                 <Card.Header><h3>Consulta procesada</h3></Card.Header>
                                 <Card.Body>
-                                    {processingSource === 'upload' && processingAudio ? (
+                                    {processingSource === 'upload' && processingAudio && (
                                         <Alert variant="info" className="mb-3 d-flex align-items-center">
                                             <Spinner animation="border" size="sm" className="me-2" />
                                             Analizando archivo subido… Esto puede tardar unos minutos.
                                         </Alert>
-                                    ) : null}
+                                    )}
 
                                     <Form.Group className="mb-2">
                                         <Form.Label>Nombre de la consulta</Form.Label>
@@ -467,14 +505,12 @@ const Dashboard = () => {
                                             required
                                         />
                                     </Form.Group>
-
                                     <small className="text-muted">
                                         Para grabar una nueva consulta, usa “Grabar consulta (micrófono)” en Acciones rápidas.
                                     </small>
                                 </Card.Body>
                             </Card>
                         ) : (
-                            // ========= Flujo normal de micrófono =========
                             <Card className="mb-4">
                                 <Card.Header><h3>Nueva Consulta Médica</h3></Card.Header>
                                 <Card.Body>
@@ -499,37 +535,21 @@ const Dashboard = () => {
                                         ) : (
                                             <>
                                                 {!isRecording ? (
-                                                    <motion.button
-                                                        className="btn btn-primary"
-                                                        onClick={() => { setLastResultSource('mic'); handleStartRecording(); }}
-                                                        disabled={processingAudio}
-                                                        whileHover={{ scale: 1.05 }}
-                                                        whileTap={{ scale: 0.95 }}
-                                                        transition={{ type: 'spring', stiffness: 300 }}
-                                                    >
+                                                    <button className="btn btn-primary" onClick={handleStartRecording} disabled={processingAudio}>
                                                         <span className="me-2"><IconMic /></span>
                                                         Iniciar grabación
-                                                    </motion.button>
+                                                    </button>
                                                 ) : (
-                                                    <motion.button
-                                                        className="btn btn-danger recording-btn"
-                                                        onClick={handleStopRecording}
-                                                        whileHover={{ scale: 1.05 }}
-                                                        whileTap={{ scale: 0.95 }}
-                                                        transition={{ type: 'spring', stiffness: 300 }}
-                                                    >
+                                                    <button className="btn btn-danger" onClick={handleStopRecording}>
                                                         Detener grabación
-                                                    </motion.button>
+                                                    </button>
                                                 )}
 
                                                 {audioBlob && !isRecording && (
-                                                    <motion.button
+                                                    <button
                                                         className="btn btn-success ms-3"
                                                         onClick={handleProcessAudio}
                                                         disabled={processingAudio || !recordingName}
-                                                        whileHover={{ scale: 1.05 }}
-                                                        whileTap={{ scale: 0.95 }}
-                                                        transition={{ type: 'spring', stiffness: 300 }}
                                                     >
                                                         {processingAudio ? (
                                                             <>
@@ -542,7 +562,7 @@ const Dashboard = () => {
                                                                 Procesar audio
                                                             </>
                                                         )}
-                                                    </motion.button>
+                                                    </button>
                                                 )}
                                             </>
                                         )}
@@ -550,6 +570,7 @@ const Dashboard = () => {
                                 </Card.Body>
                             </Card>
                         )}
+
                         {(transcription || summary) && (
                             <Row>
                                 <Col md={12}>
@@ -576,7 +597,6 @@ const Dashboard = () => {
                         )}
                     </>
                 )}
-
             </main>
         </div>
     );

@@ -1,30 +1,9 @@
 import React from 'react';
 import { Container, Row, Col, Card, Button, Table } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
 import './Pricing.css';
 
 const Pricing = () => {
-    const navigate = useNavigate();
-
-    const handleFreeTrial = () => {
-        navigate('/free-trial-setup');
-    };
-
     const plans = [
-        {
-            name: "Prueba Gratuita",
-            price: "GRATIS",
-            billing: "No es necesaria tarjeta de crédito",
-            features: [
-                "20 transcripciones/mes",
-                "Soporte por correo electrónico estándar",
-                "Plantillas de notas predeterminadas"
-            ],
-            buttonText: "Comenzar",
-            isPopular: false,
-            class: "free",
-            buttonVariant: "primary"
-        },
         {
             name: "Esencial",
             price: "$39",
@@ -71,12 +50,12 @@ const Pricing = () => {
     ];
 
     const comparisonFeatures = [
-        { name: "Transcripciones/mes", free: "20", essential: "150", professional: "300", premium: "Ilimitado" },
-        { name: "Soporte por correo electrónico estándar", free: true, essential: true, professional: true, premium: true },
-        { name: "Plantillas de notas personalizadas", free: true, essential: true, professional: true, premium: true },
-        { name: "Soporte prioritario por correo electrónico", free: false, essential: true, professional: true, premium: true },
-        { name: "Soporte telefónico", free: false, essential: false, professional: true, premium: true },
-        { name: "Soporte de incorporación 1:1", free: false, essential: false, professional: false, premium: true }
+        { name: "Transcripciones/mes", essential: "150", professional: "300", premium: "Ilimitado" },
+        { name: "Soporte por correo electrónico estándar", essential: true, professional: true, premium: true },
+        { name: "Plantillas de notas personalizadas", essential: true, professional: true, premium: true },
+        { name: "Soporte prioritario por correo electrónico", essential: true, professional: true, premium: true },
+        { name: "Soporte telefónico", essential: false, professional: true, premium: true },
+        { name: "Soporte de incorporación 1:1", essential: false, professional: false, premium: true }
     ];
 
     return (
@@ -88,10 +67,10 @@ const Pricing = () => {
                     <p>Mejore su experiencia de transcripción médica a un precio que se ajuste a su presupuesto.</p>
                 </div>
 
-                <Row className="pricing-cards">
+                <Row className="pricing-cards justify-content-center g-4">
                     {plans.map((plan, index) => (
-                        <Col key={index} lg={3} md={6}>
-                            <Card className={`pricing-card ${plan.class} ${plan.isPopular ? 'popular' : ''}`}>
+                        <Col key={index} xs={12} sm={10} md={6} lg={4} className="d-flex">
+                            <Card className={`pricing-card w-100 h-100 ${plan.class} ${plan.isPopular ? 'popular' : ''}`}>
                                 {plan.isPopular && <div className="popular-badge">Más Popular</div>}
                                 <Card.Body>
                                     <h3 className="plan-name">{plan.name}</h3>
@@ -111,7 +90,6 @@ const Pricing = () => {
                                     <Button
                                         variant={plan.buttonVariant || "primary"}
                                         className="w-100"
-                                        onClick={plan.name === "Prueba Gratuita" ? handleFreeTrial : undefined}
                                     >
                                         {plan.buttonText}
                                     </Button>
@@ -128,7 +106,6 @@ const Pricing = () => {
                             <thead>
                             <tr>
                                 <th>Feature</th>
-                                <th>Prueba Gratuita</th>
                                 <th>Esencial</th>
                                 <th>Profesional</th>
                                 <th>Premium</th>
@@ -138,10 +115,6 @@ const Pricing = () => {
                             {comparisonFeatures.map((feature, index) => (
                                 <tr key={index}>
                                     <td>{feature.name}</td>
-                                    <td>{typeof feature.free === 'boolean' ?
-                                        (feature.free ? <i className="bi bi-check-circle-fill text-success"></i> : '-') :
-                                        feature.free}
-                                    </td>
                                     <td>{typeof feature.essential === 'boolean' ?
                                         (feature.essential ? <i className="bi bi-check-circle-fill text-success"></i> : '-') :
                                         feature.essential}

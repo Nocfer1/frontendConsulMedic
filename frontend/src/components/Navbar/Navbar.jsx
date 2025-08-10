@@ -7,10 +7,6 @@ import logo from '../../assets/logo.png';
 const NavigationBar = () => {
     const navigate = useNavigate();
 
-    const handleFreeTrial = () => {
-        navigate('/login', { state: { fromFreeTrial: true } });
-    };
-
     return (
         <Navbar bg="white" expand="lg" fixed="top" className="custom-navbar">
             <Navbar.Brand as={Link} to="/" className="ms-4">
@@ -27,13 +23,6 @@ const NavigationBar = () => {
                     <Nav.Link as={Link} to="/pricing">Precios</Nav.Link>
                     <Nav.Link as={Link} to="/contact">Contacto</Nav.Link>
                     <Nav.Link as={Link} to="/about">Sobre nosotros</Nav.Link>
-                    <Button
-                        variant="outline-primary"
-                        className="me-2"
-                        onClick={handleFreeTrial}
-                    >
-                        Prueba Gratis
-                    </Button>
                     <Button
                         variant="primary"
                         as={Link}

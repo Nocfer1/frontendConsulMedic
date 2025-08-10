@@ -19,7 +19,6 @@ import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import ForgotPassword from './pages/Auth/ForgotPassword';
 import ResetPassword from './pages/Auth/ResetPassword';
-import FreeTrialSetup from './pages/FreeTrial/FreeTrialSetup';
 import Dashboard from './pages/Dashboard/Dashboard';
 import ProtectedRoute from './pages/ProtectedRoute';
 import Profile from './pages/UserProfile/Profile';
@@ -39,7 +38,6 @@ const AppRoutes = () => {
             '/dashboard', 
             '/consultations', 
             '/profile',
-            '/free-trial-setup'
         ];
 
         setIsDashboardPath(dashboardPaths.some(path => 
@@ -72,7 +70,6 @@ const AppRoutes = () => {
                     {/* Rutas protegidas */}
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/free-trial-setup" element={<FreeTrialSetup />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/consultations" element={<Consultations />} />
                         <Route path="/profile/edit" element={<EditProfile />} />
