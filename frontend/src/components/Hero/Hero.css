@@ -150,3 +150,36 @@
 .hero-content .btn-primary {
     box-shadow: 0 10px 30px rgba(2,132,199,.35);
 }
+/* Fondo hero: usa archivos en public/images */
+.hero-bg{
+    position: absolute; inset: 0;
+    background-size: cover;
+    background-position: center 45%;
+
+    /* Fallback JPG (para navegadores sin image-set/WebP) */
+    background-image: url("/images/hero@1536.jpg");
+
+    /* Safari y modernos */
+    background-image: -webkit-image-set(
+            url("/images/hero@1536.webp") 1x,
+            url("/images/hero@2560.webp") 2x
+    );
+    background-image: image-set(
+            url("/images/hero@1536.webp") 1x,
+            url("/images/hero@2560.webp") 2x
+    );
+
+    filter: blur(3px);
+    transform: scale(1.06);
+}
+
+/* Versión móvil (usa los portrait que generamos) */
+@media (max-width: 768px){
+    .hero-bg{
+        background-image: url("/images/hero@portrait@1080x1600.jpg");
+        background-image: -webkit-image-set(url("/images/hero@portrait@1080x1600.webp") 1x);
+        background-image: image-set(url("/images/hero@portrait@1080x1600.webp") 1x);
+        background-position: center 30%;
+    }
+}
+

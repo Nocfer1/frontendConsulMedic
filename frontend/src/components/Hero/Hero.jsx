@@ -2,7 +2,6 @@ import React from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import './Hero.css';
-import consulta_medica from '../../assets/consulta_medica.png';
 
 const Hero = () => {
     const navigate = useNavigate();
@@ -10,10 +9,10 @@ const Hero = () => {
 
     return (
         <section className="hero-section">
-            {/* Fondo con desenfoque */}
-            <div className="hero-bg" style={{ backgroundImage: `url(${consulta_medica})` }} />
+            {/* Fondo (se carga desde Hero.css con image-set) */}
+            <div className="hero-bg" aria-hidden="true" />
             {/* Overlay para contraste */}
-            <div className="hero-overlay" />
+            <div className="hero-overlay" aria-hidden="true" />
 
             <Container className="hero-content">
                 <Row className="align-items-center">
@@ -42,9 +41,7 @@ const Hero = () => {
                         </Button>
                     </Col>
 
-                    {/* Foto “al medio” sutil (opcional): una tarjeta translúcida centrada */}
-                    <Col lg={5} className="d-none d-lg-block">
-                    </Col>
+                    <Col lg={5} className="d-none d-lg-block">{/* espacio visual */}</Col>
                 </Row>
             </Container>
         </section>
