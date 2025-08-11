@@ -56,42 +56,34 @@ const Dashboard = () => {
         });
     };
 
-    // Polling tolerante a GCS NotFound y con backoff suave
-    const waitForFinalize = async (
-        summaryFileName,
-        {
-            maxMs = 180000,      // ~3 min
-            startDelayMs = 3000, // espera inicial para consistencia de GCS
-            stepMs = 2000,       // primer intervalo
-            stepMaxMs = 10000    // tope del intervalo
-        } = {}
-    ) => {
-        await sleep(startDelayMs);
-        const started = Date.now();
-        let delay = stepMs;
+    const waitForFinalize = async (filename, maxMinutes = 3) => {
+    const started = Date.now();
+    let delay = 1000; // 1s
+    const maxDelay = 8000;
 
-        while (Date.now() - started < maxMs) {
-            const res = await callFinalize(summaryFileName);
-            const text = await res.text().catch(() => '');
+    while ((Date.now() - started) < maxMinutes * 60 * 1000) {
+        const res = await fetch(`${API_BASE}/recordings/finalize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(filename), // el backend espera un string JSON: "archivo.webm"
+        });
 
-            if (res.status === 200) {
-                try { return JSON.parse(text); } catch { return {}; }
-            }
-
-            const isTransient =
-                res.status === 202 ||
-                ((res.status === 500 || res.status === 404) && /NotFound|storage|GCS/i.test(text));
-
-            // Esperar y seguir intentando
-            await sleep(delay);
-            delay = Math.min(delay + 1000, stepMaxMs);
-
-            if (!isTransient && res.status !== 429) {
-                // Si no es un estado transitorio (ni 202/404/500 con GCS), seguimos igual
-                // porque el back histórico a veces responde 400/415 momentáneos.
-            }
+        if (res.ok) {
+        return await res.json(); // 200 listo
         }
-        throw new Error('El resumen no estuvo listo a tiempo.');
+
+        if (res.status === 202) {
+        const { retryAfterMs } = await res.json().catch(() => ({}));
+        await new Promise(r => setTimeout(r, retryAfterMs ?? delay));
+        delay = Math.min((retryAfterMs ?? delay) * 2, maxDelay);
+        continue;
+        }
+
+        const text = await res.text().catch(() => '');
+        throw new Error(`Finalize error ${res.status}: ${text}`);
+    }
+
+    throw new Error('Timeout esperando el resumen.');
     };
 
     // Convierte WAV/MP3/M4A a WebM/Opus en el navegador (si no ya es WebM)
@@ -171,42 +163,39 @@ const Dashboard = () => {
         setTranscription('');
         setSummary('');
         try {
-            // Asegurar WebM real
-            const webmFile = await ensureWebM(file);
-
             const formData = new FormData();
-            formData.append('audioFile', webmFile, webmFile.name || 'audio.webm');
+            formData.append('audioFile', file);
 
             const uploadResponse = await fetch(`${API_BASE}/recordings/upload`, {
-                method: 'POST',
-                body: formData
+            method: 'POST',
+            body: formData
             });
             if (!uploadResponse.ok) throw new Error('Error al subir el archivo');
 
             const uploadData = await uploadResponse.json();
-            const uploadedFileName = (uploadData.uri || '').split('/').pop(); // ej: GUID.webm
-            const summaryFileName = `resumen-${uploadedFileName}.txt`;        // contrato histórico del back
+            const uploadedFileName = decodeURIComponent(uploadData.uri.split('/').pop()); // ← basename del audio
+            const resultData = await waitForFinalize(uploadedFileName);                   // ← manda basename (no “resumen-…”)
 
-            console.debug('[finalize][derived]', { uploadedFileName, summaryFileName });
-
-            const resultData = await waitForFinalize(summaryFileName);
-            setSummary(resultData?.summary || 'No se pudo obtener el resumen.');
+            setSummary(resultData.summary || 'No se pudo obtener el resumen.');
             setRecordingName('');
             setLastResultSource('upload');
 
             const token = localStorage.getItem('token');
-            const recRes = await fetch(`${API_BASE}/recordings`, {
-                headers: { Authorization: `Bearer ${token}` }
+            const recordingsResponse = await fetch(`${API_BASE}/recordings`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (recRes.ok) setRecordings(await recRes.json());
-        } catch (err) {
+            if (recordingsResponse.ok) setRecordings(await recordingsResponse.json());
+            } catch (err) {
             console.error('Error:', err);
-            setError(err?.message || 'Error al procesar el archivo. Intenta nuevamente.');
-        } finally {
+            setError('Error al procesar el archivo. Intenta nuevamente.');
+            } finally {
             setProcessingAudio(false);
             setProcessingSource(null);
-        }
-    };
+            }
+        };
+
+
 
     const handleUploadFileChange = async (e) => {
         const file = e.target.files?.[0];
@@ -259,7 +248,7 @@ const Dashboard = () => {
     }, [audioBlob, recordingName]);
 
     const handleProcessAudio = async () => {
-        if (!audioBlob) { setError('Por favor graba audio'); return; }
+        if (!audioBlob) { setError('Por favor grabe audio'); return; }
 
         setProcessingSource('mic');
         setProcessingAudio(true);
@@ -269,39 +258,39 @@ const Dashboard = () => {
 
         try {
             const formData = new FormData();
-            formData.append('audioFile', audioBlob, 'grabacion.webm');
+            formData.append('audioFile', audioBlob);
 
             const uploadResponse = await fetch(`${API_BASE}/recordings/upload`, {
-                method: 'POST',
-                body: formData
+            method: 'POST',
+            body: formData
             });
             if (!uploadResponse.ok) throw new Error('Error al subir el audio');
 
             const uploadData = await uploadResponse.json();
-            const uploadedFileName = (uploadData.uri || '').split('/').pop();
-            const summaryFileName = `resumen-${uploadedFileName}.txt`;
+            const uploadedFileName = decodeURIComponent(uploadData.uri.split('/').pop()); // ← basename del audio
+            const resultData = await waitForFinalize(uploadedFileName);                   // ← manda basename (no “resumen-…”)
 
-            const resultData = await waitForFinalize(summaryFileName);
-            setSummary(resultData?.summary || 'No se pudo obtener el resumen.');
+            setSummary(resultData.summary || 'No se pudo obtener el resumen.');
 
-            // refrescar listado
             const token = localStorage.getItem('token');
-            const recRes = await fetch(`${API_BASE}/recordings`, {
-                headers: { Authorization: `Bearer ${token}` }
+            const recordingsResponse = await fetch(`${API_BASE}/recordings`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (recRes.ok) setRecordings(await recRes.json());
+            if (recordingsResponse.ok) setRecordings(await recordingsResponse.json());
 
             setAudioBlob(null);
             setRecordingName('');
-            setLastResultSource('mic');
         } catch (err) {
             console.error('Error:', err);
-            setError(err?.message || 'Error al procesar el audio. Intenta nuevamente.');
+            setError('Error al procesar el audio. Intenta nuevamente.');
         } finally {
             setProcessingAudio(false);
             setProcessingSource(null);
-        }
-    };
+            }
+        };
+
+
 
     // -------------------- Otros --------------------
     const handleViewRecording = async (recordingId) => {
