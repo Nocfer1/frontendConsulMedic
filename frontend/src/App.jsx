@@ -34,22 +34,20 @@ const AppRoutes = () => {
     const [isDashboardPath, setIsDashboardPath] = useState(false);
 
     useEffect(() => {
-        const dashboardPaths = [
-            '/dashboard', 
-            '/consultations', 
-            '/profile',
-        ];
-
-        setIsDashboardPath(dashboardPaths.some(path => 
-            location.pathname.startsWith(path)));
+        const dashboardPaths = ['/dashboard', '/consultations', '/profile'];
+        setIsDashboardPath(dashboardPaths.some(path => location.pathname.startsWith(path)));
     }, [location]);
+
+    const isHome = location.pathname === '/'; // ← NUEVO
 
     return (
         <div className="App">
-            {isDashboardPath ? <DashboardNavbar /> : <NavigationBar />}
-            <div className="main-content">
+            {/* ← Pasamos la prop para que el Navbar sea transparente en el home */}
+            {isDashboardPath ? <DashboardNavbar /> : <NavigationBar transparentOnTop={isHome} />}
+
+            {/* ← Quitamos margen superior solo en home para que el hero quede “debajo” del navbar */}
+            <div className={`main-content ${isHome ? 'no-top' : ''}`}>
                 <Routes>
-                    {/* Rutas públicas */}
                     <Route path="/" element={
                         <>
                             <Hero />
@@ -67,7 +65,6 @@ const AppRoutes = () => {
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-                    {/* Rutas protegidas */}
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/profile" element={<Profile />} />
