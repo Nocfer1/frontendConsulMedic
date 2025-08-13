@@ -9,29 +9,21 @@ import API_BASE from '../../apiConfig';
 
 const Dashboard = () => {
     const navigate = useNavigate();
-
-    // -------------------- Estado --------------------
+    const [consultaId, setConsultaId] = useState(null);
     const [userData, setUserData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [recordings, setRecordings] = useState([]);
-
-    // Mic
     const [isRecording, setIsRecording] = useState(false);
     const mediaRecorderRef = useRef(null);
     const [audioBlob, setAudioBlob] = useState(null);
-
-    // Resultados
     const [transcription, setTranscription] = useState('');
     const [summary, setSummary] = useState('');
-
-    // UI/flujo
     const [processingAudio, setProcessingAudio] = useState(false);
     const [recordingName, setRecordingName] = useState('');
-    const [lastResultSource, setLastResultSource] = useState(null); // 'upload' | 'mic' | null
-    const [processingSource, setProcessingSource] = useState(null); // 'upload' | 'mic' | null
+    const [lastResultSource, setLastResultSource] = useState(null);
+    const [processingSource, setProcessingSource] = useState(null);
 
-    // Sidebar
     const [folders, setFolders] = useState([
         { id: 'inbox', name: 'General' },
         { id: 'reports', name: 'Informes' }
@@ -40,51 +32,51 @@ const Dashboard = () => {
 
     const fileInputRef = useRef(null);
 
-    // -------------------- Helpers comunes --------------------
     const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
     const callFinalize = async (summaryFileName) => {
         const token = localStorage.getItem('token');
-        return fetch(`${API_BASE}/recordings/finalize`, {
+        return fetch(`${API_BASE}/consults/finalize`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 ...(token ? { Authorization: `Bearer ${token}` } : {})
             },
-            // El backend espera un STRING JSON, no un objeto
             body: JSON.stringify(summaryFileName)
         });
     };
 
-    const waitForFinalize = async (filename, maxMinutes = 3) => {
-    const started = Date.now();
-    let delay = 1000; // 1s
-    const maxDelay = 8000;
+    const waitForFinalize = async (consultaId, baseFileName, recordingName, maxMinutes = 3) => {
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('No auth token');
 
-    while ((Date.now() - started) < maxMinutes * 60 * 1000) {
-        const res = await fetch(`${API_BASE}/recordings/finalize`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(filename), // el backend espera un string JSON: "archivo.webm"
-        });
+        const started = Date.now();
+        let delay = 1000;
+        const maxDelay = 8000;
 
-        if (res.ok) {
-        return await res.json(); // 200 listo
+        while ((Date.now() - started) < maxMinutes * 60 * 1000) {
+            const res = await fetch(`${API_BASE}/consults/finalize`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ consultaId, baseFileName, name: recordingName || undefined }),
+            });
+
+            if (res.ok) return await res.json(); 
+
+            if (res.status === 202) {
+            const { retryAfterMs = delay } = await res.json().catch(() => ({}));
+            await new Promise(r => setTimeout(r, retryAfterMs));
+            delay = Math.min(retryAfterMs * 2, maxDelay);
+            continue;
+            }
+
+            const text = await res.text().catch(() => '');
+            throw new Error(`Finalize error ${res.status}: ${text}`);
         }
 
-        if (res.status === 202) {
-        const { retryAfterMs } = await res.json().catch(() => ({}));
-        await new Promise(r => setTimeout(r, retryAfterMs ?? delay));
-        delay = Math.min((retryAfterMs ?? delay) * 2, maxDelay);
-        continue;
-        }
-
-        const text = await res.text().catch(() => '');
-        throw new Error(`Finalize error ${res.status}: ${text}`);
-    }
-
-    throw new Error('Timeout esperando el resumen.');
+        throw new Error('Timeout esperando el resumen.');
     };
+
 
     // Convierte WAV/MP3/M4A a WebM/Opus en el navegador (si no ya es WebM)
     const ensureWebM = async (file) => {
@@ -126,7 +118,7 @@ const Dashboard = () => {
         return new File([blob], `${base}.webm`, { type: 'audio/webm' });
     };
 
-    // -------------------- Carga de usuario y listados --------------------
+
     useEffect(() => {
         const fetchUserData = async () => {
             try {
@@ -139,7 +131,7 @@ const Dashboard = () => {
                 if (!profileRes.ok) throw new Error('No se pudo obtener la información del usuario');
                 setUserData(await profileRes.json());
 
-                const recRes = await fetch(`${API_BASE}/recordings`, {
+                const recRes = await fetch(`${API_BASE}/consults`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (recRes.ok) setRecordings(await recRes.json());
@@ -153,7 +145,6 @@ const Dashboard = () => {
         fetchUserData();
     }, [navigate]);
 
-    // -------------------- Subir archivo --------------------
     const handleClickUpload = () => fileInputRef.current?.click();
 
     const processUploadedFile = async (file) => {
@@ -166,7 +157,7 @@ const Dashboard = () => {
             const formData = new FormData();
             formData.append('audioFile', file);
 
-            const uploadResponse = await fetch(`${API_BASE}/recordings/upload`, {
+            const uploadResponse = await fetch(`${API_BASE}/consults/upload`, {
             method: 'POST',
             body: formData
             });
@@ -181,7 +172,7 @@ const Dashboard = () => {
             setLastResultSource('upload');
 
             const token = localStorage.getItem('token');
-            const recordingsResponse = await fetch(`${API_BASE}/recordings`, {
+            const recordingsResponse = await fetch(`${API_BASE}/consults`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -204,7 +195,6 @@ const Dashboard = () => {
         e.target.value = ''; // permitir re-subir el mismo archivo
     };
 
-    // -------------------- Micrófono --------------------
     const handleStartRecording = async () => {
         try {
             setLastResultSource('mic');
@@ -257,46 +247,76 @@ const Dashboard = () => {
         setSummary('');
 
         try {
+            const token = localStorage.getItem('token');
+            if (!token) { navigate('/login'); return; }
+
+        
+            let cid = consultaId;                                  
+            if (!cid) {
+            const createRes = await fetch(`${API_BASE}/consults`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ nombre: recordingName || '' })
+            });
+            if (!createRes.ok) throw new Error('No se pudo crear la consulta');
+            const created = await createRes.json(); // { id, nombre }
+            cid = created.id;
+            setConsultaId(cid);
+            }
+
             const formData = new FormData();
             formData.append('audioFile', audioBlob);
 
-            const uploadResponse = await fetch(`${API_BASE}/recordings/upload`, {
+            const uploadResponse = await fetch(`${API_BASE}/consults/upload`, {
             method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
             body: formData
             });
             if (!uploadResponse.ok) throw new Error('Error al subir el audio');
 
             const uploadData = await uploadResponse.json();
-            const uploadedFileName = decodeURIComponent(uploadData.uri.split('/').pop()); // ← basename del audio
-            const resultData = await waitForFinalize(uploadedFileName);                   // ← manda basename (no “resumen-…”)
+            const baseFileName =
+            uploadData.baseFileName ??
+            decodeURIComponent(String(uploadData.uri || '').split('/').pop());
+            if (!baseFileName) throw new Error('No se pudo obtener el nombre del archivo subido.');
 
-            setSummary(resultData.summary || 'No se pudo obtener el resumen.');
+            const fin = await waitForFinalize(cid, baseFileName, recordingName); // { id, nombre, status }
 
-            const token = localStorage.getItem('token');
-            const recordingsResponse = await fetch(`${API_BASE}/recordings`, {
+            const detailsRes = await fetch(`${API_BASE}/consults/${fin.id}/details`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (recordingsResponse.ok) setRecordings(await recordingsResponse.json());
+            if (detailsRes.ok) {
+            const details = await detailsRes.json();
+            setTranscription(details.transcription || '');
+            setSummary(details.summary || 'No se pudo obtener el resumen.');
+            } else {
+            setSummary('No se pudo obtener el resumen.');
+            }
 
+            const listRes = await fetch(`${API_BASE}/consults`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (listRes.ok) setRecordings(await listRes.json());
+
+            // Reset UI si quieres empezar una nueva consulta
             setAudioBlob(null);
             setRecordingName('');
+            setConsultaId(null);                                  
         } catch (err) {
             console.error('Error:', err);
-            setError('Error al procesar el audio. Intenta nuevamente.');
+            setError(err.message || 'Error al procesar el audio. Intenta nuevamente.');
         } finally {
             setProcessingAudio(false);
             setProcessingSource(null);
-            }
+        }
         };
 
-
-
-    // -------------------- Otros --------------------
     const handleViewRecording = async (recordingId) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_BASE}/recordings/${recordingId}`, {
+            const response = await fetch(`${API_BASE}/consults/${recordingId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (!response.ok) throw new Error('No se pudo obtener la grabación');
@@ -337,7 +357,6 @@ const Dashboard = () => {
         if (selectedFolder === id) setSelectedFolder('inbox');
     };
 
-    // -------------------- Render --------------------
     if (loading) {
         return (
             <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
@@ -359,7 +378,7 @@ const Dashboard = () => {
 
     return (
         <div className="dashboard-shell">
-            {/* Sidebar */}
+            {}
             <aside className="sidebar">
                 <div className="sidebar-header">
                     <h6>Carpetas</h6>
@@ -410,7 +429,7 @@ const Dashboard = () => {
                 </div>
             </aside>
 
-            {/* Main */}
+            {}
             <main className="main">
                 <div className="main-header">
                     <h1>Dashboard</h1>
@@ -423,7 +442,7 @@ const Dashboard = () => {
 
                 {error && <Alert variant="danger" className="mb-3">{error}</Alert>}
 
-                {/* Acciones rápidas */}
+                {}
                 <div className="quick-actions">
                     <button className="action-card action-upload" onClick={handleClickUpload} disabled={processingAudio}>
                         <IconUpload size={22} />
@@ -458,7 +477,7 @@ const Dashboard = () => {
                     </button>
                 </div>
 
-                {/* Estado vacío */}
+                {}
                 {showEmptyState && (
                     <div className="empty-state">
                         <div className="empty-icon">↑</div>
@@ -470,7 +489,7 @@ const Dashboard = () => {
                     </div>
                 )}
 
-                {/* Flujo principal */}
+                {}
                 {!showEmptyState && (
                     <>
                         {lastResultSource === 'upload' ? (
