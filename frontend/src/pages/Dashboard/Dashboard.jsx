@@ -433,10 +433,6 @@ const Dashboard = () => {
             <main className="main">
                 <div className="main-header">
                     <h1>Dashboard</h1>
-                    <div className="searchbar">
-                        <IconSearch size={18} />
-                        <input className="form-control" placeholder="Buscar por nombre, fecha o estado…" />
-                    </div>
                     <div className="ms-auto badge bg-secondary">{planName}</div>
                 </div>
 
@@ -464,16 +460,6 @@ const Dashboard = () => {
                     >
                         <IconMic size={22} />
                         <span>Grabar consulta (micrófono)</span>
-                    </button>
-
-                    <button
-                        className="action-card action-dictation"
-                        onClick={isRecording ? handleStopRecording : handleStartRecording}
-                        disabled={processingAudio}
-                        title={isRecording ? 'Detener grabación' : 'Nuevo dictado'}
-                    >
-                        <IconDictation size={22} />
-                        <span>{isRecording ? 'Detener grabación' : 'Nuevo dictado'}</span>
                     </button>
                 </div>
 
