@@ -9,6 +9,16 @@
     box-shadow: 0 6px 20px rgba(0,0,0,.06);
 }
 
+/* --- Quitar barra blanca bajo el navbar --- */
+body { padding-top: 0 !important; }              /* por si el layout global reservó espacio */
+.navbar { margin-bottom: 0 !important; }         /* evitar separación extra del propio navbar */
+.navbar + * { margin-top: 0 !important; }        /* el primer elemento después del navbar sin margen */
+#root > .container,
+#root > .container-fluid {                       /* contenedores del layout (Bootstrap) */
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
 /* Paleta base (puedes ajustar tonos aquí) */
 :root{
     --cm-primary: #1976d2;      /* azul navbar */
@@ -95,13 +105,14 @@
     display: grid;
     grid-template-columns: 260px 1fr;
     min-height: calc(100vh - 60px);
+    margin-top: 0 !important;                       /* por si algún layout le agrega margen */
 }
 
 /* ===== Sidebar */
 .sidebar {
     border-right: 1px solid #e5e9f2;
     background: #f7f9fc;
-    padding: 1rem;
+    padding: 0 1rem 1rem;                            /* sin padding-top */
     position: sticky;
     top: 60px;
     height: calc(100vh - 60px);
@@ -130,7 +141,7 @@
 .recent-item:hover { background: #eef3ff; }
 
 /* ===== Main */
-.main { padding: 1.25rem 1.5rem; }
+.main { padding: 0 1.5rem 1.25rem; }                 /* sin padding-top para pegar al navbar */
 
 /* Header con buscador */
 .main-header { display: grid; grid-template-columns: 1fr 320px; gap: 12px; align-items: center; margin-bottom: 12px; }
@@ -200,6 +211,7 @@
     .dashboard-shell { grid-template-columns: 1fr; }
     .sidebar { position: static; height: auto; border-right: 0; border-bottom: 1px solid #e5e9f2; }
 }
+
 /* ===== Turquesa (texto blanco, alto contraste) ===== */
 :root{
     --cm-turq-1: #0fb9b1;   /* turquesa base */
@@ -223,11 +235,12 @@
     outline: 3px solid var(--cm-turq-ring);
     outline-offset: 2px;
 }
+
 .quick-actions .action-card.theme-turquoise:disabled{
     opacity:.65; cursor:not-allowed; filter:none; box-shadow:none;
 }
 
-/*  versión turquesa más profunda */
+/* versión turquesa más profunda */
 .quick-actions .action-card.action-upload.theme-turquoise-deep{
     background: linear-gradient(135deg,#11998e,#0ea5a8);
 }
