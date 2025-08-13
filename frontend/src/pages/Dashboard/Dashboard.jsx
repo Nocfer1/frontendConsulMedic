@@ -440,28 +440,18 @@ const Dashboard = () => {
 
                 {}
                 <div className="quick-actions">
-                    <button className="action-card action-upload" onClick={handleClickUpload} disabled={processingAudio}>
+                    <button className="action-card action-upload theme-turquoise-deep" onClick={handleClickUpload} disabled={processingAudio}>
                         <IconUpload size={22} />
                         <span>{processingAudio ? 'Procesando…' : 'Subir archivo'}</span>
-                        <input
-                            ref={fileInputRef}
-                            onChange={handleUploadFileChange}
-                            type="file"
-                            accept="audio/*,video/*,.wav,.mp3,.m4a,.webm"
-                            hidden
-                        />
+                        <input ref={fileInputRef} onChange={handleUploadFileChange} type="file" accept="audio/*,video/*,.wav,.mp3,.m4a,.webm" hidden />
                     </button>
 
-                    <button
-                        className="action-card action-mic"
-                        onClick={startMicFlow}
-                        disabled={processingAudio}
-                        title="Grabar consulta (micrófono)"
-                    >
+                    <button className="action-card action-mic  theme-turquoise-deep" onClick={startMicFlow} disabled={processingAudio} title="Grabar consulta (micrófono)">
                         <IconMic size={22} />
                         <span>Grabar consulta (micrófono)</span>
                     </button>
                 </div>
+
 
                 {}
                 {showEmptyState && (
