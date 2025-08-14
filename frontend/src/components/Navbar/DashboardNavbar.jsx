@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { IconHeart, IconDashboard, IconJournal, IconUser, IconGear, IconLogout } from '../../components/Icons';
 import './Navbar.css';
+import './DashboardNavbar.css';
 
 const DashboardNavbar = () => {
     const { currentUser, logout } = useAuth();
@@ -27,7 +28,6 @@ const DashboardNavbar = () => {
 
                 <Navbar.Toggle aria-controls="navbar-nav" />
                 <Navbar.Collapse id="navbar-nav" className="align-items-center">
-                    {/* NAV CENTRAL 100% CENTRADO EN ESCRITORIO */}
                     <Nav className="center align-items-center">
                         <Nav.Link as={Link} to="/dashboard" className="navitem-icon">
                             <IconDashboard size={20} />
@@ -39,14 +39,12 @@ const DashboardNavbar = () => {
                             <span>Mis Consultas</span>
                         </Nav.Link>
 
-                        {/* Mi Plan, al lado de Mis Consultas */}
                         <Nav.Link as={Link} to="/plan" className="navitem-icon">
                             <span>Mi plan</span>
                             <Badge bg="light" text="dark" className="ms-2">{planName}</Badge>
                         </Nav.Link>
                     </Nav>
 
-                    {/* NAV DERECHA (usuario) */}
                     <Nav className="ms-lg-auto align-items-center">
                         {currentUser && (
                             <NavDropdown
@@ -56,8 +54,8 @@ const DashboardNavbar = () => {
                                     <span className="navitem-icon">
                     <IconUser size={20} />
                     <span>{currentUser.nombre || 'Usuario'}</span>
-                  </span>
-                                }
+                            </span>
+                            }
                             >
                                 <NavDropdown.Item as={Link} to="/profile" className="navitem-icon">
                                     <IconGear size={18} />
