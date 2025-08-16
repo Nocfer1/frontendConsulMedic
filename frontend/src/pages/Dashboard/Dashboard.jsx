@@ -32,91 +32,40 @@ const Dashboard = () => {
 
     const fileInputRef = useRef(null);
 
-    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-    const callFinalize = async (summaryFileName) => {
+    async function waitForFinalize(consultaId, baseFileName, name, maxMinutes = 3) {
         const token = localStorage.getItem('token');
-        return fetch(`${API_BASE}/consults/finalize`, {
+        const deadline = Date.now() + maxMinutes * 60 * 1000;
+
+        while (Date.now() < deadline) {
+            const res = await fetch(`${API_BASE}/consults/finalize`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                ...(token ? { Authorization: `Bearer ${token}` } : {})
+                Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify(summaryFileName)
-        });
-    };
-
-    const waitForFinalize = async (consultaId, baseFileName, recordingName, maxMinutes = 3) => {
-        const token = localStorage.getItem('token');
-        if (!token) throw new Error('No auth token');
-
-        const started = Date.now();
-        let delay = 1000;
-        const maxDelay = 8000;
-
-        while ((Date.now() - started) < maxMinutes * 60 * 1000) {
-            const res = await fetch(`${API_BASE}/consults/finalize`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ consultaId, baseFileName, name: recordingName || undefined }),
+            body: JSON.stringify({
+                consultaId,
+                baseFileName,
+                name: name || ''
+            }),
             });
 
-            if (res.ok) return await res.json(); 
-
             if (res.status === 202) {
-            const { retryAfterMs = delay } = await res.json().catch(() => ({}));
-            await new Promise(r => setTimeout(r, retryAfterMs));
-            delay = Math.min(retryAfterMs * 2, maxDelay);
+            await new Promise((r) => setTimeout(r, 4000));
             continue;
             }
 
-            const text = await res.text().catch(() => '');
-            throw new Error(`Finalize error ${res.status}: ${text}`);
+            if (!res.ok) {
+            const txt = await res.text().catch(() => '');
+            throw new Error(`Finalize error ${res.status}: ${txt}`);
+            }
+
+            return await res.json();
         }
 
-        throw new Error('Timeout esperando el resumen.');
-    };
-
-
-    // Convierte WAV/MP3/M4A a WebM/Opus en el navegador (si no ya es WebM)
-    const ensureWebM = async (file) => {
-        const looksWebM = (file?.type || '').includes('webm') || /\.webm$/i.test(file?.name || '');
-        if (looksWebM) return file;
-
-        if (!window.MediaRecorder || !MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-            throw new Error('Este navegador no puede convertir a WebM. Sube un archivo .webm');
+        throw new Error('Timeout esperando el procesamiento.');
         }
-
-        // 1) Decodificar a PCM
-        const arrayBuffer = await file.arrayBuffer();
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        const ctx = new AudioCtx();
-        const buffer = await ctx.decodeAudioData(arrayBuffer);
-
-        // 2) Reproducir el buffer hacia un destino de MediaStream y grabarlo como WebM/Opus
-        const dest = ctx.createMediaStreamDestination();
-        const src = ctx.createBufferSource();
-        src.buffer = buffer;
-        src.connect(dest);
-
-        const chunks = [];
-        const rec = new MediaRecorder(dest.stream, { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 128000 });
-        rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
-        const stopped = new Promise(res => { rec.onstop = res; });
-
-        rec.start(100);
-        src.start();
-
-        const stopAfter = Math.ceil(buffer.duration * 1000) + 120; // margen
-        setTimeout(() => { if (rec.state !== 'inactive') rec.stop(); }, stopAfter);
-        await stopped;
-
-        try { src.disconnect(); dest.disconnect(); ctx.close(); } catch {}
-
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        const base = (file.name || 'audio').replace(/\.[^/.]+$/, '') || 'audio';
-        return new File([blob], `${base}.webm`, { type: 'audio/webm' });
-    };
 
 
     useEffect(() => {
@@ -153,37 +102,80 @@ const Dashboard = () => {
         setError('');
         setTranscription('');
         setSummary('');
+
         try {
+            const token = localStorage.getItem('token');
+            if (!token) { navigate('/login'); return; }
+
+            let cid = consultaId;
+            if (!cid) {
+            const createRes = await fetch(`${API_BASE}/consults`, {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ nombre: recordingName || '' }),
+            });
+            if (!createRes.ok) throw new Error('No se pudo crear la consulta');
+            const created = await createRes.json();
+
+            cid = created.id ?? created.Id;
+            if (!cid) throw new Error('La respuesta de creación no devolvió id.');
+            setConsultaId(cid);
+            }
+
             const formData = new FormData();
             formData.append('audioFile', file);
 
             const uploadResponse = await fetch(`${API_BASE}/consults/upload`, {
             method: 'POST',
-            body: formData
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData,
             });
-            if (!uploadResponse.ok) throw new Error('Error al subir el archivo');
+
+            if (!uploadResponse.ok) {
+            const errTxt = await uploadResponse.text().catch(() => '');
+            throw new Error(errTxt || 'Error al subir el archivo');
+            }
 
             const uploadData = await uploadResponse.json();
-            const uploadedFileName = decodeURIComponent(uploadData.uri.split('/').pop()); // ← basename del audio
-            const resultData = await waitForFinalize(uploadedFileName);                   // ← manda basename (no “resumen-…”)
 
-            setSummary(resultData.summary || 'No se pudo obtener el resumen.');
-            setRecordingName('');
-            setLastResultSource('upload');
+            const baseFileName =
+            uploadData.baseFileName ??
+            decodeURIComponent(String(uploadData.uri || '').split('/').pop() || '');
 
-            const token = localStorage.getItem('token');
-            const recordingsResponse = await fetch(`${API_BASE}/consults`, {
+            if (!baseFileName) throw new Error('No se pudo obtener el nombre del archivo subido.');
+            
+            const fin = await waitForFinalize(cid, baseFileName, recordingName);
+
+            const detailsRes = await fetch(`${API_BASE}/consults/${fin.id}/details`, {
             method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
             });
-            if (recordingsResponse.ok) setRecordings(await recordingsResponse.json());
-            } catch (err) {
+
+            if (detailsRes.ok) {
+            const details = await detailsRes.json();
+            setTranscription(details.transcription || '');
+            setSummary(details.summary || 'No se pudo obtener el resumen.');
+            } else {
+            setSummary('No se pudo obtener el resumen.');
+            }
+            const listRes = await fetch(`${API_BASE}/consults`, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${token}` },
+            });
+            if (listRes.ok) setRecordings(await listRes.json());
+
+            setLastResultSource('upload');
+            setRecordingName('');
+        } catch (err) {
             console.error('Error:', err);
-            setError('Error al procesar el archivo. Intenta nuevamente.');
-            } finally {
+            setError(err.message || 'Error al procesar el archivo. Intenta nuevamente.');
+        } finally {
             setProcessingAudio(false);
             setProcessingSource(null);
-            }
+        }
         };
 
 
