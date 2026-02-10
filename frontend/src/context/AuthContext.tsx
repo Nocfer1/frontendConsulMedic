@@ -1,17 +1,37 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import API_BASE from '../apiConfig';
 
-const AuthContext = createContext();
 
-export const useAuth = () => useContext(AuthContext);
+interface User {
+    [key: string]: any;
+}
 
-export const AuthProvider = ({ children }) => {
+interface AuthContextType {
+    currentUser: User | null;
+    loading: boolean;
+    login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+    register: (userData: any) => Promise<{ success: boolean; message?: string; requireLogin?: boolean; error?: string }>;
+    logout: () => void;
+    isAuthenticated: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-    const fetchUserData = async () => {
-        const token = localStorage.getItem('token');
+        const fetchUserData = async () => {
+            const token = localStorage.getItem('token');
 
             if (!token) {
                 setCurrentUser(null);
@@ -106,10 +126,10 @@ export const AuthProvider = ({ children }) => {
             });
 
             if (!response.ok) {
-            const text = await response.text();
-            console.error(`❌ Error ${response.status} ${response.statusText}:`, text);
-            throw new Error(`(${response.status}) ${text || 'Error al registrarse'}`);
-        }
+                const text = await response.text();
+                console.error(`❌ Error ${response.status} ${response.statusText}:`, text);
+                throw new Error(`(${response.status}) ${text || 'Error al registrarse'}`);
+            }
 
 
 
@@ -117,7 +137,7 @@ export const AuthProvider = ({ children }) => {
             const contentType = response.headers.get('content-type');
             let data;
 
-            if (contentType && contentType.includes('application/json')) {
+            if (contentType?.includes('application/json')) {
                 data = await response.json();
             } else {
                 // Si la respuesta no es JSON, usamos texto y creamos un objeto
@@ -129,7 +149,7 @@ export const AuthProvider = ({ children }) => {
             }
 
             // Si hay token, lo guardamos
-            if (data && data.token) {
+            if (data?.token) {
                 localStorage.setItem('token', data.token);
 
                 // Como no hay endpoint de perfil, creamos datos básicos del usuario

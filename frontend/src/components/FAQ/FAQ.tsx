@@ -30,7 +30,7 @@ const FAQ = () => {
                 <div className="faq-container" data-aos="fade-up">
                     <Accordion>
                         {faqs.map((faq, index) => (
-                            <Accordion.Item eventKey={index} key={index}>
+                            <Accordion.Item eventKey={index.toString()} key={index}>
                                 <Accordion.Header>{faq.question}</Accordion.Header>
                                 <Accordion.Body>{faq.answer}</Accordion.Body>
                             </Accordion.Item>

@@ -121,14 +121,14 @@ const Consultations = () => {
             }
 
             const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
+            const url = globalThis.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `consulta-${recordingId}.pdf`;
             document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
+            a.remove();
+            globalThis.URL.revokeObjectURL(url);
         } catch (err) {
             console.error('Error:', err);
             setError('Error al descargar el PDF');
@@ -136,7 +136,7 @@ const Consultations = () => {
     };
 
     const handleDeleteRecording = async (recordingId) => {
-        if (!window.confirm('¿Está seguro de que desea eliminar esta consulta? Esta acción no se puede deshacer.')) {
+        if (!globalThis.confirm('¿Está seguro de que desea eliminar esta consulta? Esta acción no se puede deshacer.')) {
             return;
         }
 
@@ -173,19 +173,19 @@ const Consultations = () => {
     // Ordenar grabaciones
     const sortedRecordings = [...recordings].sort((a, b) => {
         if (sortField === 'createdAt') {
-            return sortDirection === 'asc' 
-                ? new Date(a.createdAt) - new Date(b.createdAt) 
-                : new Date(b.createdAt) - new Date(a.createdAt);
+            return sortDirection === 'asc'
+                ? new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         } else if (sortField === 'name') {
-            return sortDirection === 'asc' 
-                ? a.name.localeCompare(b.name) 
+            return sortDirection === 'asc'
+                ? a.name.localeCompare(b.name)
                 : b.name.localeCompare(a.name);
         }
         return 0;
     });
 
     // Filtrar grabaciones por término de búsqueda
-    const filteredRecordings = sortedRecordings.filter(recording => 
+    const filteredRecordings = sortedRecordings.filter(recording =>
         recording.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -198,7 +198,7 @@ const Consultations = () => {
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
     const formatDate = (dateString) => {
-        const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+        const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
         return new Date(dateString).toLocaleDateString('es-ES', options);
     };
 
@@ -233,11 +233,11 @@ const Consultations = () => {
                                 </InputGroup>
                             </Col>
                             <Col md={6} className="text-md-end mt-3 mt-md-0">
-                                <Button 
-                                    variant="primary" 
+                                <Button
+                                    variant="primary"
                                     onClick={() => navigate('/dashboard')}
                                 >
-                                    <i className="bi bi-plus-circle me-2"></i>
+                                    <i className="bi bi-plus-circle me-2"></i>{' '}{' '}
                                     Nueva Consulta
                                 </Button>
                             </Col>
@@ -252,8 +252,8 @@ const Consultations = () => {
                                 <i className="bi bi-file-earmark-text display-1 text-muted"></i>
                                 <h3 className="mt-3">No hay consultas</h3>
                                 <p className="text-muted">Comience a grabar su primera consulta médica desde el Dashboard</p>
-                                <Button 
-                                    variant="primary" 
+                                <Button
+                                    variant="primary"
                                     onClick={() => navigate('/dashboard')}
                                     className="mt-3"
                                 >
@@ -287,24 +287,24 @@ const Consultations = () => {
                                                     <td>{recording.name}</td>
                                                     <td>{formatDate(recording.createdAt)}</td>
                                                     <td>
-                                                        <Button 
-                                                            variant="outline-primary" 
+                                                        <Button
+                                                            variant="outline-primary"
                                                             size="sm"
                                                             className="me-2"
                                                             onClick={() => handleViewDetails(recording._id)}
                                                         >
                                                             <i className="bi bi-eye"></i>
                                                         </Button>
-                                                        <Button 
-                                                            variant="outline-success" 
+                                                        <Button
+                                                            variant="outline-success"
                                                             size="sm"
                                                             className="me-2"
                                                             onClick={() => handleDownloadPDF(recording._id)}
                                                         >
                                                             <i className="bi bi-file-earmark-pdf"></i>
                                                         </Button>
-                                                        <Button 
-                                                            variant="outline-danger" 
+                                                        <Button
+                                                            variant="outline-danger"
                                                             size="sm"
                                                             onClick={() => handleDeleteRecording(recording._id)}
                                                         >
@@ -322,17 +322,17 @@ const Consultations = () => {
                                     <div className="pagination-container mt-4">
                                         <ul className="pagination justify-content-center">
                                             <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                                                <button 
-                                                    className="page-link" 
+                                                <button
+                                                    className="page-link"
                                                     onClick={() => paginate(currentPage - 1)}
                                                     disabled={currentPage === 1}
                                                 >
                                                     Anterior
                                                 </button>
                                             </li>
-                                            {[...Array(totalPages).keys()].map(number => (
-                                                <li 
-                                                    key={number + 1} 
+                                            {[...new Array(totalPages).keys()].map(number => (
+                                                <li
+                                                    key={number + 1}
                                                     className={`page-item ${currentPage === number + 1 ? 'active' : ''}`}
                                                 >
                                                     <button
@@ -344,8 +344,8 @@ const Consultations = () => {
                                                 </li>
                                             ))}
                                             <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                                                <button 
-                                                    className="page-link" 
+                                                <button
+                                                    className="page-link"
                                                     onClick={() => paginate(currentPage + 1)}
                                                     disabled={currentPage === totalPages}
                                                 >
@@ -389,11 +389,11 @@ const Consultations = () => {
                             </div>
                         </Modal.Body>
                         <Modal.Footer>
-                            <Button 
-                                variant="outline-success" 
+                            <Button
+                                variant="outline-success"
                                 onClick={() => handleDownloadPDF(selectedRecording._id)}
                             >
-                                <i className="bi bi-file-earmark-pdf me-2"></i>
+                                <i className="bi bi-file-earmark-pdf me-2"></i>{' '}{' '}
                                 Descargar PDF
                             </Button>
                             <Button variant="secondary" onClick={handleCloseModal}>
