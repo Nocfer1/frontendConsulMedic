@@ -1,0 +1,173 @@
+:root {
+  --moss: #4a5d4e;
+  --terracotta: #b07d62;
+  --white: #ffffff;
+}
+
+.how-section {
+  padding: 8rem 0;
+  background-color: transparent;
+}
+
+.how-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.how-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5rem;
+  align-items: center;
+}
+
+/* Visual Wrapper & Image */
+.how-visual-wrapper {
+  position: relative;
+}
+
+.image-frame-container {
+  position: relative;
+  border-radius: 4rem;
+  overflow: hidden;
+  border: 12px solid var(--white);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.how-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: transform 0.7s ease;
+}
+
+.how-image:hover {
+  transform: scale(1.05);
+}
+
+.image-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(74, 93, 78, 0.4), transparent);
+  pointer-events: none;
+}
+
+/* Content & Typography */
+.how-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.how-title {
+  font-size: 3rem;
+  line-height: 1.1;
+  color: var(--moss);
+}
+
+.accent-color {
+  color: var(--terracotta);
+}
+
+/* Steps System */
+.steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  position: relative;
+  padding-left: 1rem;
+}
+
+/* Línea vertical que conecta los pasos (Opcional visual) */
+.steps-list::before {
+  content: '';
+  position: absolute;
+  left: 1px;
+  top: 10px;
+  bottom: 10px;
+  width: 1px;
+  background-color: rgba(176, 125, 98, 0.2);
+}
+
+.step-item {
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.step-dot {
+  position: absolute;
+  left: -4px;
+  top: 8px;
+  width: 9px;
+  height: 9px;
+  background-color: var(--terracotta);
+  border-radius: 50%;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.step-icon {
+  color: var(--terracotta);
+}
+
+.step-title {
+  font-size: 1.25rem;
+  color: var(--moss);
+}
+
+.step-description {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  opacity: 0.7;
+  color: var(--moss);
+}
+
+/* Button Styling */
+.btn-primary-large {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: var(--moss);
+  color: white;
+  padding: 1.25rem 2.5rem;
+  border-radius: 9999px;
+  border: none;
+  font-size: 1.125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.btn-primary-large:hover {
+  background-color: #3a4a3e;
+  transform: translateY(-2px);
+}
+
+/* Responsividad */
+@media (max-width: 1024px) {
+  .how-grid {
+    grid-template-columns: 1fr;
+    gap: 4rem;
+  }
+
+  .how-visual-wrapper {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .how-title {
+    font-size: 2.5rem;
+    text-align: center;
+  }
+
+  .how-actions {
+    display: flex;
+    justify-content: center;
+  }
+}

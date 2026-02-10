@@ -1,0 +1,105 @@
+:root {
+    --clay: #a67c52;
+    /* Ejemplo de color arcilla */
+    --sage: #778a71;
+    /* Ejemplo de color salvia */
+    --terra: #b35a38;
+    /* Ejemplo de color tierra */
+}
+
+.features-section {
+    padding: 4rem 1rem;
+    background-color: transparent;
+}
+
+.features-container {
+    max-width: 1152px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.features-header {
+    margin-bottom: 3rem;
+}
+
+.main-icon-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.icon-main {
+    color: var(--clay);
+}
+
+.section-title {
+    font-size: 2.5rem;
+    line-height: 1.2;
+    font-weight: 500;
+    color: #1a1a1a;
+}
+
+/* Grid Layout */
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2.5rem;
+    margin-top: 3rem;
+}
+
+/* Card Styles */
+.feature-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem;
+}
+
+.feature-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    margin-bottom: 1.5rem;
+    color: white;
+    /* Color de icono por defecto */
+}
+
+.feature-card-title {
+    font-family: serif;
+    /* Simula text-serif */
+    font-style: italic;
+    /* Simula text-italic */
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.feature-card-description {
+    opacity: 0.7;
+    line-height: 1.6;
+    font-size: 0.875rem;
+    color: #4a4a4a;
+}
+
+/* Variantes de color para los iconos */
+.feat-clay {
+    background-color: var(--clay);
+}
+
+.feat-sage {
+    background-color: var(--sage);
+}
+
+.feat-terra {
+    background-color: var(--terra);
+}
+
+/* Responsividad básica para títulos */
+@media (max-width: 768px) {
+    .section-title {
+        font-size: 2rem;
+    }
+}

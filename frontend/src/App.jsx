@@ -2,15 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'aos/dist/aos.css';
+import './index.css';
+import './styles.css';
 import './App.css';
 
-import NavigationBar from './components/Navbar/Navbar';
+import Navbar from './components/Navbar/Navbar';
 import DashboardNavbar from './components/Navbar/DashboardNavbar';
 import Hero from './components/Hero/Hero';
-import WritingSection from './components/WritingSection/WritingSection';
-import DemoSection from './components/DemoSection/DemoSection';
-import WhyChooseUs from './components/WhyChooseUs/WhyChooseUs';
-import FAQ from './components/FAQ/FAQ';
+import Features from './components/Features/Features';
+import VideoSection from './components/VideoSection/VideoSection';
+import HowItWorks from './components/HowItWorks/HowItWork';
+import SocialProof from './components/SocialProof/SocialProof';
+import CTA from './components/CTA/CTA';
 import Footer from './components/Footer/Footer';
 import Pricing from './pages/Pricing/Pricing';
 import Contact from './pages/Contact/Contact';
@@ -35,29 +38,30 @@ const AppRoutes = () => {
 
     useEffect(() => {
         const dashboardPaths = [
-            '/dashboard', 
-            '/consultations', 
+            '/dashboard',
+            '/consultations',
             '/profile',
             '/free-trial-setup'
         ];
 
-        setIsDashboardPath(dashboardPaths.some(path => 
+        setIsDashboardPath(dashboardPaths.some(path =>
             location.pathname.startsWith(path)));
     }, [location]);
 
     return (
-        <div className="App">
-            {isDashboardPath ? <DashboardNavbar /> : <NavigationBar />}
-            <div className="main-content">
+        <div className="App app-container">
+            {isDashboardPath ? <DashboardNavbar /> : <Navbar />}
+            <div className="app-container">
                 <Routes>
                     {/* Rutas públicas */}
                     <Route path="/" element={
                         <>
                             <Hero />
-                            <WritingSection />
-                            <DemoSection />
-                            <WhyChooseUs />
-                            <FAQ />
+                            <Features />
+                            <VideoSection />
+                            <HowItWorks />
+                            <SocialProof />
+                            <CTA />
                         </>
                     } />
                     <Route path="/pricing" element={<Pricing />} />
