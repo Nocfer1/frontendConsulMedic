@@ -1,15 +1,21 @@
 import React from 'react';
 import { Play } from 'lucide-react';
 import { motion } from 'framer-motion';
+import './VideoSection.css';
 
+/**
+ * Componente que muestra una sección de video demostrativo.
+ * Utiliza Framer Motion para animaciones de entrada y Lucide para iconos.
+ * * @returns {JSX.Element} La sección de video de la landing page.
+ */
 const VideoSection: React.FC = () => {
   return (
     <section className="video-section">
-      <div className="container" style={{ maxWidth: '1024px', textAlign: 'center' }}>
-        <h2 className="text-serif" style={{ fontSize: '2.25rem', marginBottom: '1rem', color: 'var(--moss)' }}>
+      <div className="video-container">
+        <h2 className="video-title text-serif">
           De Audio a Anamnesis en segundos
         </h2>
-        <p style={{ opacity: 0.6, marginBottom: '3rem', maxWidth: '42rem', marginInline: 'auto' }}>
+        <p className="video-description">
           Mira cómo MedScribe graba la consulta y organiza automáticamente el historial del paciente con resúmenes clínicos precisos.
         </p>
 
@@ -22,19 +28,23 @@ const VideoSection: React.FC = () => {
         >
           <div className="video-overlay">
              <div className="play-button">
-                <Play size={32} color="var(--moss)" style={{ marginLeft: '4px' }} fill="currentColor" />
+                <Play 
+                  size={32} 
+                  className="play-icon" 
+                  fill="currentColor" 
+                />
              </div>
           </div>
           
           <img 
             src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80" 
             alt="Video de demostración generación de anamnesis" 
-            style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.9 }}
+            className="video-thumbnail"
           />
           
           <div className="video-info">
-            <p className="text-serif" style={{ fontSize: '1.125rem' }}>Demo: Generación automática de historial clínico</p>
-            <p style={{ fontSize: '0.875rem', opacity: 0.8 }}>Duración: 1:30</p>
+            <p className="video-info-title text-serif">Demo: Generación automática de historial clínico</p>
+            <p className="video-info-duration">Duración: 1:30</p>
           </div>
         </motion.div>
       </div>

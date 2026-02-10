@@ -1,0 +1,110 @@
+/* --- Estructura de la Sección --- */
+.video-section {
+  padding: 6rem 0;
+  background-color: var(--stone);
+}
+
+.video-container {
+  max-width: 1024px;
+  text-align: center;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* --- Tipografía --- */
+.video-title {
+  font-size: 2.25rem;
+  margin-bottom: 1rem;
+  color: var(--moss);
+}
+
+.video-description {
+  opacity: 0.6;
+  margin-bottom: 3rem;
+  max-width: 42rem;
+  margin-inline: auto;
+  line-height: 1.6;
+}
+
+.text-serif {
+  font-family: var(--font-serif);
+}
+
+/* --- Contenedor de Video --- */
+.video-wrapper {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 4px solid var(--white);
+  aspect-ratio: 16 / 9;
+  background-color: rgba(74, 93, 78, 0.05);
+  cursor: pointer;
+}
+
+.video-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.9;
+  display: block;
+}
+
+/* --- Interacción y Overlay --- */
+.video-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s;
+  z-index: 10;
+}
+
+.video-wrapper:hover .video-overlay {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.play-button {
+  width: 5rem;
+  height: 5rem;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s;
+}
+
+.play-icon {
+  color: var(--moss);
+  margin-left: 4px; /* Alineación óptica del icono Play */
+}
+
+.video-wrapper:hover .play-button {
+  transform: scale(1.1);
+}
+
+/* --- Información Inferior --- */
+.video-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1.5rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent);
+  color: white;
+  text-align: left;
+}
+
+.video-info-title {
+  font-size: 1.125rem;
+  margin-bottom: 0.25rem;
+}
+
+.video-info-duration {
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
