@@ -1,105 +1,86 @@
-:root {
-    --clay: #a67c52;
-    /* Ejemplo de color arcilla */
-    --sage: #778a71;
-    /* Ejemplo de color salvia */
-    --terra: #b35a38;
-    /* Ejemplo de color tierra */
-}
-
 .features-section {
-    padding: 4rem 1rem;
-    background-color: transparent;
+  padding: 8rem 0;
+  background-color: rgba(250, 249, 246, 0.5);
+  border-top: 1px solid rgba(134, 148, 128, 0.1);
+  border-bottom: 1px solid rgba(134, 148, 128, 0.1);
 }
 
 .features-container {
-    max-width: 1152px;
-    margin: 0 auto;
-    text-align: center;
+  max-width: 1152px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 0 1.5rem;
 }
 
-.features-header {
-    margin-bottom: 3rem;
-}
-
-.main-icon-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 2rem;
-}
-
-.icon-main {
-    color: var(--clay);
+.main-brain-wrapper {
+  display: flex; 
+  justify-content: center; 
+  margin-bottom: 2rem;
+  color: var(--clay);
 }
 
 .section-title {
-    font-size: 2.5rem;
-    line-height: 1.2;
-    font-weight: 500;
-    color: #1a1a1a;
+  font-size: 2.5rem;
+  font-family: var(--font-serif);
+  font-style: italic;
+  margin-bottom: 4rem; /* Aumentado para dar aire */
+  line-height: 1.2;
+  color: #334133;
 }
 
-/* Grid Layout */
+/* --- GRID FIX --- */
 .features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2.5rem;
-    margin-top: 3rem;
+  display: grid;
+  grid-template-columns: 1fr; /* Móvil: 1 columna */
+  gap: 3rem;
 }
 
-/* Card Styles */
+@media (min-width: 1024px) {
+  .features-grid {
+    grid-template-columns: repeat(3, 1fr); /* Desktop: 3 columnas */
+  }
+}
+
 .feature-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  transition: background-color 0.5s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Centra el contenido internamente */
+}
+
+.feature-card:hover {
+  background-color: rgba(255,255,255,0.8);
 }
 
 .feature-icon-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    margin-bottom: 1.5rem;
-    color: white;
-    /* Color de icono por defecto */
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  transition: background-color 0.3s;
 }
 
 .feature-card-title {
-    font-family: serif;
-    /* Simula text-serif */
-    font-style: italic;
-    /* Simula text-italic */
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-    color: #333;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #3d4a3d;
 }
 
-.feature-card-description {
-    opacity: 0.7;
-    line-height: 1.6;
-    font-size: 0.875rem;
-    color: #4a4a4a;
+.feature-card-desc {
+  opacity: 0.7;
+  line-height: 1.6;
+  font-size: 0.875rem;
+  color: #4a5d4e;
 }
 
-/* Variantes de color para los iconos */
-.feat-clay {
-    background-color: var(--clay);
-}
-
-.feat-sage {
-    background-color: var(--sage);
-}
-
-.feat-terra {
-    background-color: var(--terra);
-}
-
-/* Responsividad básica para títulos */
-@media (max-width: 768px) {
-    .section-title {
-        font-size: 2rem;
-    }
-}
+/* Feature Colors */
+.feat-clay { background-color: rgba(215, 204, 200, 0.3); color: var(--clay); }
+.feat-sage { background-color: rgba(134, 148, 128, 0.3); color: var(--sage); }
+.feat-terra { background-color: rgba(176, 125, 98, 0.3); color: var(--terracotta); }
