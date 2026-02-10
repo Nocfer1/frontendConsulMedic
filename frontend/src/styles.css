@@ -110,7 +110,8 @@ body {
 }
 
 .navbar-content {
-    max-width: 1280px;
+    max-width: 896px;
+    /* 56rem */
     margin: 0 auto;
     display: flex;
     justify-content: space-between;
